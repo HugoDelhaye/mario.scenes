@@ -1,0 +1,203 @@
+{
+    "title": "Super Mario Bros. Scene Annotations",
+    "description": "This TSV file contains one row per Super Mario Bros. scene. Columns include scene identifiers, entry/exit positions, and design-pattern annotations based on Dahlskog & Togelius (2012) plus additional custom patterns.",
+    "columns": [
+      {
+        "name": "World",
+        "type": "integer",
+        "description": "The world ID (1–8)."
+      },
+      {
+        "name": "Level",
+        "type": "integer",
+        "description": "The level ID within a given world (1–3)."
+      },
+      {
+        "name": "Scene",
+        "type": "integer",
+        "description": "The scene ID (unique within World–Level)."
+      },
+      {
+        "name": "x Hi (entry)",
+        "type": "integer or null",
+        "description": "(Optional) High byte or partial coordinate for the entry X position."
+      },
+      {
+        "name": "x Lo (entry)",
+        "type": "integer or null",
+        "description": "(Optional) Low byte or partial coordinate for the entry X position."
+      },
+      {
+        "name": "x Hi (exit)",
+        "type": "integer or null",
+        "description": "(Optional) High byte or partial coordinate for the exit X position."
+      },
+      {
+        "name": "x Lo (exit)",
+        "type": "integer or null",
+        "description": "(Optional) Low byte or partial coordinate for the exit X position."
+      },
+      {
+        "name": "Entry point",
+        "type": "integer",
+        "description": "Full X position marking the beginning of the scene."
+      },
+      {
+        "name": "Exit point",
+        "type": "integer",
+        "description": "Full X position marking the end of the scene."
+      },
+      {
+        "name": "Layout",
+        "type": "integer",
+        "description": "A placeholder or descriptive label of the layout; unused in many rows."
+      },
+      {
+        "name": "Enemy",
+        "type": "integer (0 or 1)",
+        "description": "Indicates presence (1) or absence (0) of a single enemy."
+      },
+      {
+        "name": "2-Horde",
+        "type": "integer (0 or 1)",
+        "description": "Two enemies together."
+      },
+      {
+        "name": "3-Horde",
+        "type": "integer (0 or 1)",
+        "description": "Three enemies together."
+      },
+      {
+        "name": "4-Horde",
+        "type": "integer (0 or 1)",
+        "description": "Four enemies together."
+      },
+      {
+        "name": "Roof",
+        "type": "integer (0 or 1)",
+        "description": "Enemies are placed underneath a hanging platform (Mario can hit the ceiling)."
+      },
+      {
+        "name": "Gap",
+        "type": "integer (0 or 1)",
+        "description": "Single gap in the ground/platform."
+      },
+      {
+        "name": "Multiple gaps",
+        "type": "integer (0 or 1)",
+        "description": "More than one gap with fixed platforms in between."
+      },
+      {
+        "name": "Variable gaps",
+        "type": "integer (0 or 1)",
+        "description": "Gaps and platform widths vary."
+      },
+      {
+        "name": "Gap enemy",
+        "type": "integer (0 or 1)",
+        "description": "Enemies in the air above gaps."
+      },
+      {
+        "name": "Pillar gap",
+        "type": "integer (0 or 1)",
+        "description": "Pillar objects (e.g., pipes/blocks) placed on platforms between gaps."
+      },
+      {
+        "name": "Valley",
+        "type": "integer (0 or 1)",
+        "description": "A valley created by vertically stacked blocks/pipes (no Piranha plants)."
+      },
+      {
+        "name": "Pipe valley",
+        "type": "integer (0 or 1)",
+        "description": "A valley with pipes and Piranha plants."
+      },
+      {
+        "name": "Empty valley",
+        "type": "integer (0 or 1)",
+        "description": "A valley without enemies."
+      },
+      {
+        "name": "Enemy valley",
+        "type": "integer (0 or 1)",
+        "description": "A valley that contains enemies."
+      },
+      {
+        "name": "Roof valley",
+        "type": "integer (0 or 1)",
+        "description": "A valley with enemies and a roof (Mario can bounce on the ceiling)."
+      },
+      {
+        "name": "2-Path",
+        "type": "integer (0 or 1)",
+        "description": "A hanging platform allowing Mario to choose between two paths."
+      },
+      {
+        "name": "3-Path",
+        "type": "integer (0 or 1)",
+        "description": "Two hanging platforms allowing Mario to choose between three paths."
+      },
+      {
+        "name": "Risk/Reward",
+        "type": "integer (0 or 1)",
+        "description": "A multiple-path situation where one path has a reward but is riskier (enemy or gap)."
+      },
+      {
+        "name": "Stair up",
+        "type": "integer (0 or 1)",
+        "description": "A stair going upwards."
+      },
+      {
+        "name": "Stair down",
+        "type": "integer (0 or 1)",
+        "description": "A stair going downwards."
+      },
+      {
+        "name": "Empty stair valley",
+        "type": "integer (0 or 1)",
+        "description": "A valley between a stair up and stair down without enemies."
+      },
+      {
+        "name": "Enemy stair valley",
+        "type": "integer (0 or 1)",
+        "description": "A valley between a stair up and stair down with enemies."
+      },
+      {
+        "name": "Gap stair valley",
+        "type": "integer (0 or 1)",
+        "description": "A valley between a stair up and stair down that has a gap."
+      },
+
+      {
+        "name": "Reward",
+        "type": "integer (0 or 1)",
+        "description": "Rewards without immediate danger."
+      },
+      {
+        "name": "Moving platform",
+        "type": "integer (0 or 1)",
+        "description": "A platform moving vertically or horizontally."
+      },
+      {
+        "name": "Flagpole",
+        "type": "integer (0 or 1)",
+        "description": "The ending flagpole of a level."
+      },
+      {
+        "name": "Beginning",
+        "type": "integer (0 or 1)",
+        "description": "Indicates the beginning of the level."
+      },
+      {
+        "name": "Bonus zone",
+        "type": "integer (0 or 1)",
+        "description": "A hidden zone without enemies."
+      },
+      {
+        "name": "Waterworld",
+        "type": "integer (0 or 1)",
+        "description": "A special hidden zone with underwater gameplay."
+      }
+    ]
+  }
+  

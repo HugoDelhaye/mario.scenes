@@ -4,3 +4,6 @@ scikit-video
 python-pptx 
 Pillow 
 lxml
+stable-retro
+joblib
+pandas

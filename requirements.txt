@@ -7,3 +7,10 @@ lxml
 stable-retro
 joblib
 pandas
+plotly
+flask
+gunicorn
+jupyter
+scipy
+seaborn
+invoke

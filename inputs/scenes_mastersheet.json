@@ -1,0 +1,276 @@
+{
+  "World": {
+    "LongName": "World",
+    "Description": "Integer from 1 to 8 representing the World number."
+  },
+  "Level": {
+    "LongName": "Level",
+    "Description": "Integer from 1 to 3 representing the Level number within a World."
+  },
+  "Scene": {
+    "LongName": "Scene",
+    "Description": "Integer ID uniquely identifying a scene within a World–Level."
+  },
+  "x Hi (entry)": {
+    "LongName": "High-byte Entry Coordinate",
+    "Description": "High-byte (or partial) coordinate for the entry X position."
+  },
+  "x Lo (entry)": {
+    "LongName": "Low-byte Entry Coordinate",
+    "Description": "Low-byte (or partial) coordinate for the entry X position."
+  },
+  "x Hi (exit)": {
+    "LongName": "High-byte Exit Coordinate",
+    "Description": "High-byte (or partial) coordinate for the exit X position."
+  },
+  "x Lo (exit)": {
+    "LongName": "Low-byte Exit Coordinate",
+    "Description": "Low-byte (or partial) coordinate for the exit X position."
+  },
+  "Entry point": {
+    "LongName": "Entry Point",
+    "Description": "Full X position marking the beginning of the scene."
+  },
+  "Exit point": {
+    "LongName": "Exit Point",
+    "Description": "Full X position marking the end of the scene."
+  },
+  "Layout": {
+    "LongName": "Layout",
+    "Description": "Optional placeholder or descriptive label for a scene's layout."
+  },
+
+  "Enemy": {
+    "LongName": "Enemy",
+    "Description": "Indicates presence or absence of a single enemy in this scene.",
+    "Levels": {
+      "0": { "Description": "Absent" },
+      "1": { "Description": "Present" }
+    }
+  },
+  "2-Horde": {
+    "LongName": "2-Horde",
+    "Description": "Two enemies together.",
+    "Levels": {
+      "0": { "Description": "Absent" },
+      "1": { "Description": "Present" }
+    }
+  },
+  "3-Horde": {
+    "LongName": "3-Horde",
+    "Description": "Three enemies together.",
+    "Levels": {
+      "0": { "Description": "Absent" },
+      "1": { "Description": "Present" }
+    }
+  },
+  "4-Horde": {
+    "LongName": "4-Horde",
+    "Description": "Four enemies together.",
+    "Levels": {
+      "0": { "Description": "Absent" },
+      "1": { "Description": "Present" }
+    }
+  },
+  "Roof": {
+    "LongName": "Roof",
+    "Description": "Enemies placed under a hanging platform (Mario can bounce on the ceiling).",
+    "Levels": {
+      "0": { "Description": "Absent" },
+      "1": { "Description": "Present" }
+    }
+  },
+  "Gap": {
+    "LongName": "Gap",
+    "Description": "Indicates a single gap in the ground or platform.",
+    "Levels": {
+      "0": { "Description": "Absent" },
+      "1": { "Description": "Present" }
+    }
+  },
+  "Multiple gaps": {
+    "LongName": "Multiple Gaps",
+    "Description": "Indicates more than one gap with fixed platforms in between.",
+    "Levels": {
+      "0": { "Description": "Absent" },
+      "1": { "Description": "Present" }
+    }
+  },
+  "Variable gaps": {
+    "LongName": "Variable Gaps",
+    "Description": "Indicates variable gap and platform widths.",
+    "Levels": {
+      "0": { "Description": "Absent" },
+      "1": { "Description": "Present" }
+    }
+  },
+  "Gap enemy": {
+    "LongName": "Gap Enemy",
+    "Description": "Indicates enemies in the air above gaps.",
+    "Levels": {
+      "0": { "Description": "Absent" },
+      "1": { "Description": "Present" }
+    }
+  },
+  "Pillar gap": {
+    "LongName": "Pillar Gap",
+    "Description": "Indicates a pillar (pipe or blocks) placed on platforms between gaps.",
+    "Levels": {
+      "0": { "Description": "Absent" },
+      "1": { "Description": "Present" }
+    }
+  },
+  "Valley": {
+    "LongName": "Valley",
+    "Description": "A valley created by stacked blocks/pipes (no Piranha plants).",
+    "Levels": {
+      "0": { "Description": "Absent" },
+      "1": { "Description": "Present" }
+    }
+  },
+  "Pipe valley": {
+    "LongName": "Pipe Valley",
+    "Description": "A valley with pipes that contain Piranha plants.",
+    "Levels": {
+      "0": { "Description": "Absent" },
+      "1": { "Description": "Present" }
+    }
+  },
+  "Empty valley": {
+    "LongName": "Empty Valley",
+    "Description": "A valley with no enemies.",
+    "Levels": {
+      "0": { "Description": "Absent" },
+      "1": { "Description": "Present" }
+    }
+  },
+  "Enemy valley": {
+    "LongName": "Enemy Valley",
+    "Description": "A valley containing enemies.",
+    "Levels": {
+      "0": { "Description": "Absent" },
+      "1": { "Description": "Present" }
+    }
+  },
+  "Roof valley": {
+    "LongName": "Roof Valley",
+    "Description": "A valley with enemies and a roof (ceiling bounce).",
+    "Levels": {
+      "0": { "Description": "Absent" },
+      "1": { "Description": "Present" }
+    }
+  },
+  "2-Path": {
+    "LongName": "2-Path",
+    "Description": "A scene offering two possible paths (1 hanging platform).",
+    "Levels": {
+      "0": { "Description": "Absent" },
+      "1": { "Description": "Present" }
+    }
+  },
+  "3-Path": {
+    "LongName": "3-Path",
+    "Description": "A scene offering three possible paths (2 hanging platforms).",
+    "Levels": {
+      "0": { "Description": "Absent" },
+      "1": { "Description": "Present" }
+    }
+  },
+  "Risk/Reward": {
+    "LongName": "Risk/Reward",
+    "Description": "A multiple-path situation where one path is riskier but has a reward.",
+    "Levels": {
+      "0": { "Description": "Absent" },
+      "1": { "Description": "Present" }
+    }
+  },
+  "Stair up": {
+    "LongName": "Stair Up",
+    "Description": "A stair going upwards.",
+    "Levels": {
+      "0": { "Description": "Absent" },
+      "1": { "Description": "Present" }
+    }
+  },
+  "Stair down": {
+    "LongName": "Stair Down",
+    "Description": "A stair going downwards.",
+    "Levels": {
+      "0": { "Description": "Absent" },
+      "1": { "Description": "Present" }
+    }
+  },
+  "Empty stair valley": {
+    "LongName": "Empty Stair Valley",
+    "Description": "Valley between a stair up and down without enemies.",
+    "Levels": {
+      "0": { "Description": "Absent" },
+      "1": { "Description": "Present" }
+    }
+  },
+  "Enemy stair valley": {
+    "LongName": "Enemy Stair Valley",
+    "Description": "Valley between a stair up and down with enemies.",
+    "Levels": {
+      "0": { "Description": "Absent" },
+      "1": { "Description": "Present" }
+    }
+  },
+  "Gap stair valley": {
+    "LongName": "Gap Stair Valley",
+    "Description": "Valley between a stair up and down with a gap in the middle.",
+    "Levels": {
+      "0": { "Description": "Absent" },
+      "1": { "Description": "Present" }
+    }
+  },
+
+  "Reward": {
+    "LongName": "Reward",
+    "Description": "Indicates a reward without immediate danger.",
+    "Levels": {
+      "0": { "Description": "Absent" },
+      "1": { "Description": "Present" }
+    }
+  },
+  "Moving platform": {
+    "LongName": "Moving Platform",
+    "Description": "Indicates a platform moving vertically or horizontally.",
+    "Levels": {
+      "0": { "Description": "Absent" },
+      "1": { "Description": "Present" }
+    }
+  },
+  "Flagpole": {
+    "LongName": "Flagpole",
+    "Description": "End-of-level flagpole.",
+    "Levels": {
+      "0": { "Description": "Absent" },
+      "1": { "Description": "Present" }
+    }
+  },
+  "Beginning": {
+    "LongName": "Beginning",
+    "Description": "Indicates the beginning of a level.",
+    "Levels": {
+      "0": { "Description": "Absent" },
+      "1": { "Description": "Present" }
+    }
+  },
+  "Bonus zone": {
+    "LongName": "Bonus Zone",
+    "Description": "A hidden zone without enemies.",
+    "Levels": {
+      "0": { "Description": "Absent" },
+      "1": { "Description": "Present" }
+    }
+  },
+  "Waterworld": {
+    "LongName": "Waterworld",
+    "Description": "A special hidden zone with underwater gameplay.",
+    "Levels": {
+      "0": { "Description": "Absent" },
+      "1": { "Description": "Present" }
+    }
+  }
+}

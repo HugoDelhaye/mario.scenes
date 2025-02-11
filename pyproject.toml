@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mario.scenes"
+version = "0.1"
+dependencies = [
+    "tqdm",
+    "tqdm_joblib",
+    "pandas",
+    "numpy",
+    "scikit-video",
+    "python-pptx",
+    "stable-retro",
+    "joblib",
+    "scipy",
+    "seaborn",
+    "invoke"
+]
+description = "A set of functions and code to split levels of the game Super Mario Bros. into smaller atomic scenes."
+authors = [{name = "Yann Harel"}]
+license = {text = "MIT"}
+
+[tool.setuptools]
+packages = ["src"]  # Include only the "code" package

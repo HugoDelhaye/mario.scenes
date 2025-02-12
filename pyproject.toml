@@ -3,7 +3,7 @@ requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "mario.scenes"
+name = "mario_scenes"
 version = "0.1"
 dependencies = [
     "tqdm",
@@ -22,5 +22,5 @@ description = "A set of functions and code to split levels of the game Super Mar
 authors = [{name = "Yann Harel"}]
 license = {text = "MIT"}
 
-[tool.setuptools]
-packages = ["src"]  # Include only the "code" package
+[tool.setuptools.packages.find]
+where = ["src"]

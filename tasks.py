@@ -43,10 +43,10 @@ def clean_outputs(c):
 @task
 def collect_resources(c):
     """Collects resources for the project."""
-    c.run("mkdir -p inputs")
-    c.run('wget "https://zenodo.org/records/14847566/files/mario_scenes_manual_annotation.pdf?download=1" -O inputs/mario_scenes_manual_annotation.pdf')
-    c.run('wget "https://zenodo.org/records/14847566/files/scenes_mastersheet.json?download=1" -O inputs/scenes_mastersheet.json')
-    c.run('wget "https://zenodo.org/records/14847566/files/scenes_mastersheet.tsv?download=1" -O inputs/scenes_mastersheet.tsv')
+    c.run("mkdir -p resources")
+    c.run('wget "https://zenodo.org/records/14847566/files/mario_scenes_manual_annotation.pdf?download=1" -O resources/mario_scenes_manual_annotation.pdf')
+    c.run('wget "https://zenodo.org/records/14847566/files/scenes_mastersheet.json?download=1" -O resources/scenes_mastersheet.json')
+    c.run('wget "https://zenodo.org/records/14847566/files/scenes_mastersheet.tsv?download=1" -O resources/scenes_mastersheet.tsv')
 
 @task
 def full_pipeline(c):

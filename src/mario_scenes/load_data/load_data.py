@@ -1,8 +1,6 @@
 import pandas as pd
 
 
-
-
 def load_scenes_info(format='df'):
     """
     Load scenes information from a TSV file and return it in the specified format.
@@ -18,12 +16,23 @@ def load_scenes_info(format='df'):
     Raises:
         ValueError: If the format is not 'df' or 'dict'.
     """
+
+    # check if file exists
     scenes_df = pd.read_csv('../resources/scenes_mastersheet.tsv', sep='\t')
-    scenes_df = curate_dataframe(scenes_df)
     if format == 'df':
         return scenes_df
     elif format == 'dict':
         scenes_dict = {}
+        for idx, row in scenes_df.iterrows():
+            try:
+                scene_id = f'w{int(row["World"])}l{int(row["Level"])}s{int(row["Scene"])}'
+                scenes_dict[scene_id] = {
+                    'start': int(row['Entry point']),
+                    'end': int(row['Exit point']),
+                    'level_layout': int(row['Layout'])
+                }
+            except:
+                continue
         return scenes_dict
     else:
         raise ValueError('format must be either "df" or "dict"')
@@ -34,7 +43,7 @@ def curate_dataframe(df):
     Curates the input DataFrame by creating a 'scene_ID' column and selecting specific feature columns.
     Args:
         df (pandas.DataFrame): The input DataFrame containing scene data with columns 'World', 'Level', 'Scene', and various feature columns.
-        
+
     Returns:
         pandas.DataFrame: A curated DataFrame with a new 'scene_ID' column and selected feature columns.
     """

@@ -272,7 +272,7 @@ def process_bk2_file(bk2_info, args, scenes_info_dict, DERIVATIVES_FOLDER, STIMU
                 assert len(clip_code) == 14, f"Invalid clip code: {clip_code}"
 
                 # Construct BIDS-compliant paths
-                deriv_folder = op.join(DERIVATIVES_FOLDER, args.pipeline_name)
+                deriv_folder = op.join(DERIVATIVES_FOLDER, args.output_name)
                 sub_folder = op.join(deriv_folder, f"sub-{sub}")
                 ses_folder = op.join(sub_folder, f"ses-{ses}")
                 beh_folder = op.join(ses_folder, 'beh')
@@ -439,10 +439,10 @@ def main(args):
     # and change pipeline folder name accordingly.
     if args.simple:
         args.game_name = 'SuperMarioBrosSimple-Nes'
-        args.pipeline_name = 'mario_scenes_simple'
+        args.output_name = 'mario_scenes_simple'
     else:
         args.game_name = 'SuperMarioBros-Nes'
-        args.pipeline_name = 'mario_scenes'
+        args.output_name = 'mario_scenes'
 
     # Determine which file types to generate.
     # If none are specified, we generate them all by default (including json).
@@ -478,7 +478,7 @@ def main(args):
     logging.debug(f"Available games: {games_list}")
 
     logging.info(f"Game to use: {args.game_name}")
-    logging.info(f"Pipeline name: {args.pipeline_name}")
+    logging.info(f"Output dataset name: {args.output_name}")
     logging.info(f"Generating clips for the dataset in: {DATA_PATH}")
     logging.info(f"Taking stimuli from: {STIMULI_PATH}")
     logging.info(f"Saving derivatives in: {DERIVATIVES_FOLDER}")
@@ -516,7 +516,7 @@ def main(args):
 
     # Prepare data for saving: BIDS derivatives dataset_description
     dataset_description = {
-        'Name': args.pipeline_name,
+        'Name': args.output_name,
         'BIDSVersion': '1.6.0',
         'GeneratedBy': [{
             'Name': 'Courtois Neuromod',
@@ -526,7 +526,7 @@ def main(args):
         'SourceDatasets': [{'URL': 'https://github.com/courtois-neuromod/mario/'}],
         'License': 'CC0',
     }
-    deriv_folder = op.join(DERIVATIVES_FOLDER, args.pipeline_name)
+    deriv_folder = op.join(DERIVATIVES_FOLDER, args.output_name)
     os.makedirs(deriv_folder, exist_ok=True)
     with open(op.join(deriv_folder, "dataset_description.json"), "w") as f:
         json.dump(dataset_description, f, indent=4)

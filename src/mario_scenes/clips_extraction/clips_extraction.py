@@ -14,6 +14,9 @@ import re
 from tqdm import tqdm
 from tqdm_joblib import tqdm_joblib
 import traceback
+from mario_scenes.load_data import load_scenes_info
+
+
 
 
 def replay_bk2(
@@ -170,23 +173,6 @@ def replay_clip_for_savestate_and_ramdump(
 
     if ramdump_fname:
         np.savez_compressed(ramdump_fname, states_list)
-
-
-def load_scenes_info(scenes_file):
-    """Load scenes information from a CSV file."""
-    scenes_info = pd.read_csv(scenes_file)
-    scenes_info_dict = {}
-    for idx, row in scenes_info.iterrows():
-        try:
-            scene_id = f'w{int(row["World"])}l{int(row["Level"])}s{int(row["Scene"])}'
-            scenes_info_dict[scene_id] = {
-                'start': int(row['Entry point']),
-                'end': int(row['Exit point']),
-                'level_layout': int(row['Layout'])
-            }
-        except:
-            continue
-    return scenes_info_dict
 
 
 def process_bk2_file(bk2_info, args, scenes_info_dict, DERIVATIVES_FOLDER, STIMULI_PATH):
@@ -471,13 +457,8 @@ def main(args):
     # Get datapath
     DATA_PATH = op.abspath(args.datapath)
 
-    # Load scenes info
-    SCENES_FILE = args.scenesfile
-    if SCENES_FILE is None:
-        SCENES_FILE = op.join(
-            DATA_PATH, "code", "annotations", "scenes", "resources", "scenes_mastersheet.csv"
-        )
-    scenes_info_dict = load_scenes_info(SCENES_FILE)
+    # Load scenes
+    scenes_info_dict = load_scenes_info(format='dict')
 
     # Setup derivatives folder
     if args.output is None:
@@ -501,7 +482,6 @@ def main(args):
     logging.info(f"Generating clips for the dataset in: {DATA_PATH}")
     logging.info(f"Taking stimuli from: {STIMULI_PATH}")
     logging.info(f"Saving derivatives in: {DERIVATIVES_FOLDER}")
-    logging.info(f"Using scenes file: {SCENES_FILE}")
     logging.info(f"Requested file types: {args.filetypes_to_generate}")
 
     # Collect all bk2 files and related information
@@ -543,7 +523,7 @@ def main(args):
             'Version': '1.0.0',
             'CodeURL': 'https://github.com/courtois-neuromod/mario_scenes/script/clip_extractor.py'
         }],
-        'SourceDatasets': [{'URL': 'n/a'}],
+        'SourceDatasets': [{'URL': 'https://github.com/courtois-neuromod/mario/'}],
         'License': 'CC0',
     }
     deriv_folder = op.join(DERIVATIVES_FOLDER, args.pipeline_name)
@@ -582,13 +562,6 @@ if __name__ == "__main__":
         default=None,
         type=str,
         help="Path to the derivatives folder, where the outputs will be saved.",
-    )
-    parser.add_argument(
-        "-s",
-        "--scenesfile",
-        default=None,
-        type=str,
-        help="Path to the scenes file, a CSV file that contains info about the start and end positions to clip.",
     )
     parser.add_argument(
         "-sp",

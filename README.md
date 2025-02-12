@@ -2,7 +2,10 @@
 
 This repository contains a script to extract specific scenes from the Super Mario Bros game dataset. The script processes `.bk2` game recording files to generate video clips and savestates corresponding to predefined scenes.
 
-This repo is designed to be installed as a submodule of https://github.com/courtois-neuromod/mario_annotations.git, which creates annotations for the cneuromod.mario dataset.
+This repo is a companion of the [cneuromod.mario](https://github.com/courtois-neuromod/mario.git) dataset, and is designed to be imported and reused in (non-exhaustive list) :
+- [mario.annotations](https://github.com/courtois-neuromod/mario.annotations)
+- [mario_learning](https://github.com/courtois-neuromod/mario_learning)
+- [mario_curiosity.scene_agents](https://github.com/courtois-neuromod/mario_curiosity.scene_agents)
 
 ## Prerequisites
 Install the [cneuromod.mario](https://github.com/courtois-neuromod/mario) dataset and the related [stimuli]https://github.com/courtois-neuromod/mario.stimuli. 

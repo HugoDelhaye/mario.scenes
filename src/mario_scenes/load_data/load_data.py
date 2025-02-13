@@ -1,6 +1,8 @@
 import pandas as pd
 import os.path as op
 
+BASE_DIR = op.dirname(op.dirname(op.dirname(op.dirname(op.abspath(__file__)))))
+SCENES_MASTERSHEET = op.join(BASE_DIR, 'resources', 'scenes_mastersheet.tsv')
 
 def load_scenes_info(format='df'):
     """
@@ -17,10 +19,6 @@ def load_scenes_info(format='df'):
     Raises:
         ValueError: If the format is not 'df' or 'dict'.
     """
-    # Get the directory where the current script is located
-    BASE_DIR = op.dirname(op.dirname(op.dirname(op.dirname(op.abspath(__file__)))))
-    # Build the path relative to this directory
-    SCENES_MASTERSHEET = op.join(BASE_DIR, 'resources', 'scenes_mastersheet.tsv')
     # Check if file exists
     assert op.exists(SCENES_MASTERSHEET), f"File not found: {SCENES_MASTERSHEET}, make sure you run 'invoke collect-resources' first."
     
@@ -45,7 +43,7 @@ def load_scenes_info(format='df'):
         raise ValueError('format must be either "df" or "dict"')
     
 
-def curate_dataframe(df):
+def load_annotation_data():
     """
     Curates the input DataFrame by creating a 'scene_ID' column and selecting specific feature columns.
     Args:
@@ -55,6 +53,7 @@ def curate_dataframe(df):
         pandas.DataFrame: A curated DataFrame with a new 'scene_ID' column and selected feature columns.
     """
     # Create the 'scene_ID' column
+    df = load_scenes_info(format='df')
     df['scene_ID'] = df.apply(
         lambda row: f"w{int(row['World'])}l{int(row['Level'])}s{int(row['Scene'])}",
         axis=1
@@ -70,9 +69,12 @@ def curate_dataframe(df):
         'Flagpole', 'Beginning', 'Bonus zone'
     ]
     
-    # Select columns to keep in the curated DataFrame
-    curated_df = df[
-        ['scene_ID', 'World', 'Level', 'Scene'] + feature_cols
-    ].copy()
-    
-    return curated_df
+    annotations_df = df[feature_cols]
+    annotations_df.index = df['scene_ID']
+
+    return annotations_df
+
+def load_reduced_data(method='umap'):
+    fname = op.join(BASE_DIR, 'outputs', 'dimensionality_reduction', f'{method}.csv')
+    assert op.exists(fname), f"File not found: {fname}, make sure you run 'invoke dimensionality-reduction' first."
+    return pd.read_csv(fname, index_col=0)

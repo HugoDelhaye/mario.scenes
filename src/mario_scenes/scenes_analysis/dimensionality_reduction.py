@@ -1,4 +1,4 @@
-from mario_scenes.load_data import load_scenes_info, curate_dataframe
+from mario_scenes.load_data import load_annotation_data
 import pandas as pd
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
@@ -95,9 +95,7 @@ def main():
     print('Outputs folder created')
 
     # Load inputs
-    scenes_info = load_scenes_info()
-    scenes_info = curate_dataframe(scenes_info)
-    df_features = scenes_info.drop(columns=['scene_ID', 'World', 'Level', 'Scene'])
+    df_features = load_annotation_data()
 
     # Set up logging
     logging.basicConfig(level=logging.INFO)
@@ -119,7 +117,6 @@ def main():
         random_state=42,
         dr_params={"svd_solver": "full"}
     )
-    df_pca.index = scenes_info['scene_ID']
     df_pca.to_csv(op.join(OUTPUT_DIR, "pca.csv"))
     if verbose > 0:
         logger.info("PCA completed and saved to pca.csv")
@@ -134,7 +131,6 @@ def main():
         random_state=42,
         dr_params={"n_neighbors": 15, "min_dist": 0.1}
     )
-    df_umap.index = scenes_info['scene_ID']
     df_umap.to_csv(op.join(OUTPUT_DIR, "umap.csv"))
     if verbose > 0:
         logger.info("UMAP completed and saved to umap.csv")
@@ -149,7 +145,6 @@ def main():
         random_state=42,
         dr_params={"perplexity": 30, "learning_rate": 200}
     )
-    df_tsne.index = scenes_info['scene_ID']
     df_tsne.to_csv(op.join(OUTPUT_DIR, "tsne.csv"))
     if verbose > 0:
         logger.info("t-SNE completed and saved to tsne.csv")

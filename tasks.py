@@ -1,19 +1,15 @@
 from invoke import task
+import os.path as op
 
-
+BASE_DIR = op.dirname(op.abspath(__file__))
 # ===============================
 # 🔹 TASKS: Data Processing
 # ===============================
 
 @task
-def clean_data(c):
+def run_analysis(c):
     """Cleans the raw data and saves the cleaned version."""
-    c.run(f"python {SCRIPT_DIR}/clean_data.py")
-
-@task(pre=[clean_data])
-def preprocess_data(c):
-    """Preprocesses data for training."""
-    c.run(f"python {SCRIPT_DIR}/preprocess_data.py")
+    c.run(f"python {BASE_DIR}/src/mario_scenes/scenes_analysis/dimensionality_reduction.py")
 
 # ===============================
 # 🔹 TASKS: Model Training
@@ -21,7 +17,7 @@ def preprocess_data(c):
 
 @task
 def cluster_scenes(c):
-    """Hierarchical clustering on scenes based on annotations."""
+    """Hierarchical clustering onrun_analysis scenes based on annotations."""
     c.run(f"python src/cluster_scenes.py outputs/clusters.pkl --n_clusters $(seq 5 30)")
 
 

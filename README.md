@@ -23,7 +23,7 @@ cd mario_scenes
 invoke setup-env
 ```
 
-- Download resources (scenes_mastersheet.tsv in particular): 
+- Download resources (`scenes_mastersheet.tsv` in particular): 
 ```
 invoke collect-resources
 ```

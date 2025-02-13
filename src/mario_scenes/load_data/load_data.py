@@ -1,4 +1,5 @@
 import pandas as pd
+import os.path as op
 
 
 def load_scenes_info(format='df'):
@@ -16,9 +17,15 @@ def load_scenes_info(format='df'):
     Raises:
         ValueError: If the format is not 'df' or 'dict'.
     """
-
-    # check if file exists
-    scenes_df = pd.read_csv('../resources/scenes_mastersheet.tsv', sep='\t')
+    # Get the directory where the current script is located
+    BASE_DIR = op.dirname(op.dirname(op.dirname(op.dirname(op.abspath(__file__)))))
+    # Build the path relative to this directory
+    SCENES_MASTERSHEET = op.join(BASE_DIR, 'resources', 'scenes_mastersheet.tsv')
+    # Check if file exists
+    assert op.exists(SCENES_MASTERSHEET), f"File not found: {SCENES_MASTERSHEET}, make sure you run 'invoke collect-resources' first."
+    
+    # Load the data
+    scenes_df = pd.read_csv(SCENES_MASTERSHEET, sep='\t')
     if format == 'df':
         return scenes_df
     elif format == 'dict':

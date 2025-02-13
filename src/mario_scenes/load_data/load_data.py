@@ -56,7 +56,7 @@ def curate_dataframe(df):
     """
     # Create the 'scene_ID' column
     df['scene_ID'] = df.apply(
-        lambda row: f"w{row['World']}l{row['Level']}s{row['Scene']}",
+        lambda row: f"w{int(row['World'])}l{int(row['Level'])}s{int(row['Scene'])}",
         axis=1
     )
     

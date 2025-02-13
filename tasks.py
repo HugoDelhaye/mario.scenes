@@ -7,18 +7,14 @@ BASE_DIR = op.dirname(op.abspath(__file__))
 # ===============================
 
 @task
-def run_analysis(c):
+def dimensionality_reduction(c):
     """Cleans the raw data and saves the cleaned version."""
     c.run(f"python {BASE_DIR}/src/mario_scenes/scenes_analysis/dimensionality_reduction.py")
-
-# ===============================
-# 🔹 TASKS: Model Training
-# ===============================
 
 @task
 def cluster_scenes(c):
     """Hierarchical clustering onrun_analysis scenes based on annotations."""
-    c.run(f"python src/cluster_scenes.py outputs/clusters.pkl --n_clusters $(seq 5 30)")
+    c.run(f"python {BASE_DIR}/src/mario_scenes/scenes_analysis/cluster_scenes.py --n_clusters $(seq 5 30)")
 
 
 # ===============================
@@ -47,5 +43,6 @@ def collect_resources(c):
 @task
 def full_pipeline(c):
     """Runs the full pipeline from data cleaning to dashboard."""
-    invoke_pipeline = "invoke clean_data preprocess_data train_model dashboard"
-    c.run(f"datalad run -m 'Full pipeline execution' --python \"{invoke_pipeline}\"")
+    #invoke_pipeline = "invoke setup_env collect_resources dimensionality_reduction cluster_scenes"
+    #c.run(f"datalad run -m 'Full pipeline execution' --python \"{invoke_pipeline}\"")
+    c.run("invoke setup-env collect-resources dimensionality-reduction cluster-scenes")

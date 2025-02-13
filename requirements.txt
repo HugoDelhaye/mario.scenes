@@ -14,3 +14,5 @@ jupyter
 scipy
 seaborn
 invoke
+umap-learn
+scikit-learn

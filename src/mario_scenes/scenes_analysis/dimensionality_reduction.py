@@ -5,6 +5,7 @@ from sklearn.manifold import TSNE
 import umap.umap_ as umap
 import os.path as op
 import os
+import logging
 
 
 def dimensionality_reduction(
@@ -98,18 +99,34 @@ def main():
     scenes_info = curate_dataframe(scenes_info)
     df_features = scenes_info.drop(columns=['scene_ID', 'World', 'Level', 'Scene'])
 
+    # Set up logging
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger(__name__)
+
+    # Verbose level
+    verbose = 1
+
+    if verbose > 0:
+        logger.info("Starting dimensionality reduction on scene annotations")
+
     # 1) PCA
+    if verbose > 0:
+        logger.info("Applying PCA...")
     df_pca = dimensionality_reduction(
-    df_features,
-    method="pca",
-    n_components=2,
-    random_state=42,
-    dr_params={"svd_solver": "full"}
+        df_features,
+        method="pca",
+        n_components=2,
+        random_state=42,
+        dr_params={"svd_solver": "full"}
     )
     df_pca.index = scenes_info['scene_ID']
     df_pca.to_csv(op.join(OUTPUT_DIR, "pca.csv"))
+    if verbose > 0:
+        logger.info("PCA completed and saved to pca.csv")
 
     # 2) UMAP
+    if verbose > 0:
+        logger.info("Applying UMAP...")
     df_umap = dimensionality_reduction(
         df_features,
         method="umap",
@@ -119,9 +136,12 @@ def main():
     )
     df_umap.index = scenes_info['scene_ID']
     df_umap.to_csv(op.join(OUTPUT_DIR, "umap.csv"))
-
+    if verbose > 0:
+        logger.info("UMAP completed and saved to umap.csv")
 
     # 3) t-SNE
+    if verbose > 0:
+        logger.info("Applying t-SNE...")
     df_tsne = dimensionality_reduction(
         df_features,
         method="tsne",
@@ -131,6 +151,11 @@ def main():
     )
     df_tsne.index = scenes_info['scene_ID']
     df_tsne.to_csv(op.join(OUTPUT_DIR, "tsne.csv"))
+    if verbose > 0:
+        logger.info("t-SNE completed and saved to tsne.csv")
+
+    if verbose > 0:
+        logger.info("Dimensionality reduction process completed.")
 
 if __name__ == "__main__":
     main()

@@ -18,8 +18,9 @@ git clone git@github.com:courtois-neuromod/mario_scenes
 
 - Create an env and install the package : 
 ```
-mamba create -n mario_scenes
 cd mario_scenes
+python -m venv mario_scenes_env
+source mario_scenes_env/bin/activate
 invoke setup-env
 ```
 

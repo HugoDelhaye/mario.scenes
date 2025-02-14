@@ -28,6 +28,20 @@ def setup_env(c):
     c.run("pip install -e .")
 
 @task
+def set_mario_dataset(c):
+    """Sets up the Mario dataset."""
+    command = (
+        "mkdir -p data && "
+        "cd data && "
+        "datalad install git@github.com:courtois-neuromod/mario && "
+        "cd mario && "
+        "git checkout events && "
+        "datalad get */*/*/*.bk2 && "
+        "datalad get */*/*/*.tsv"
+    )
+    c.run(command)
+
+@task
 def clean_outputs(c):
     """Removes temporary files and cached data."""
     c.run("rm -rf outputs/*")

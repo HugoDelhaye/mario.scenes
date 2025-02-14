@@ -37,9 +37,19 @@ def set_mario_dataset(c):
         "cd mario && "
         "git checkout events && "
         "datalad get */*/*/*.bk2 && "
-        "datalad get */*/*/*.tsv"
+        "datalad get */*/*/*.tsv &&"
+        "rm -r stimuli && "
+        "datalad install git@github.com:courtois-neuromod/mario.stimuli stimuli && "
+        "cd stimuli && "
+        "git checkout scenes_states && "
+        "datalad get ."
     )
     c.run(command)
+
+@task 
+def clips_extraction(c):
+    """Extracts clips from the raw data."""
+    c.run(f"python {BASE_DIR}/src/mario_scenes/clips_extraction/clips_extraction.py -d data/mario")
 
 @task
 def clean_outputs(c):

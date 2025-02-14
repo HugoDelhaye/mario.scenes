@@ -2,7 +2,7 @@ import pandas as pd
 import os.path as op
 
 BASE_DIR = op.dirname(op.dirname(op.dirname(op.dirname(op.abspath(__file__)))))
-SCENES_MASTERSHEET = op.join(BASE_DIR, 'resources', 'scenes_mastersheet.tsv')
+SCENES_MASTERSHEET = op.join(BASE_DIR, 'resources', 'scenes_mastersheet.csv')
 
 def load_scenes_info(format='df'):
     """

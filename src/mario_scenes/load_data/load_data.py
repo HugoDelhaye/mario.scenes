@@ -23,7 +23,7 @@ def load_scenes_info(format='df'):
     assert op.exists(SCENES_MASTERSHEET), f"File not found: {SCENES_MASTERSHEET}, make sure you run 'invoke collect-resources' first."
     
     # Load the data
-    scenes_df = pd.read_csv(SCENES_MASTERSHEET, sep='\t')
+    scenes_df = pd.read_csv(SCENES_MASTERSHEET)
     if format == 'df':
         return scenes_df
     elif format == 'dict':

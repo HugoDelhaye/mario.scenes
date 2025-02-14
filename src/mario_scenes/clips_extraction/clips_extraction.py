@@ -175,7 +175,7 @@ def replay_clip_for_savestate_and_ramdump(
         np.savez_compressed(ramdump_fname, states_list)
 
 
-def process_bk2_file(bk2_info, args, scenes_info_dict, DERIVATIVES_FOLDER, STIMULI_PATH):
+def process_bk2_file(bk2_info, args, scenes_info_dict, DATA_PATH, DERIVATIVES_FOLDER, STIMULI_PATH):
     """
     Process a single bk2 file to extract clips, saving only the requested file types:
     - savestate (.state)
@@ -215,7 +215,7 @@ def process_bk2_file(bk2_info, args, scenes_info_dict, DERIVATIVES_FOLDER, STIMU
 
         # We'll always need to detect scene boundaries, so let's replay once:
         repvars, frames_list = get_variables_from_replay(
-            bk2_file,
+            op.join(DATA_PATH, bk2_file),
             skip_first_step=skip_first_step,
             game=args.game_name,
             inttype=retro.data.Integrations.CUSTOM_ONLY
@@ -494,7 +494,7 @@ def main(args):
 
     with tqdm_joblib(tqdm(desc="Processing bk2 files", total=total_bk2_files)):
         results = Parallel(n_jobs=n_jobs)(
-            delayed(process_bk2_file)(bk2_info, args, scenes_info_dict, DERIVATIVES_FOLDER, STIMULI_PATH)
+            delayed(process_bk2_file)(bk2_info, args, scenes_info_dict, DATA_PATH, DERIVATIVES_FOLDER, STIMULI_PATH)
             for bk2_info in bk2_files_info
         )
 

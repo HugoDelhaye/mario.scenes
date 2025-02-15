@@ -38,7 +38,7 @@ def set_mario_dataset(c):
         "git checkout events && "
         "datalad get */*/*/*.bk2 && "
         "datalad get */*/*/*.tsv &&"
-        "rm -r stimuli && "
+        "rm -rf stimuli && "
         "datalad install git@github.com:courtois-neuromod/mario.stimuli stimuli && "
         "cd stimuli && "
         "git checkout scenes_states && "

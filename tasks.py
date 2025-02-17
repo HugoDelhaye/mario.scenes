@@ -49,7 +49,7 @@ def set_mario_dataset(c):
 @task 
 def clips_extraction(c):
     """Extracts clips from the raw data."""
-    c.run(f"python {BASE_DIR}/src/mario_scenes/clips_extraction/clips_extraction.py -d data/mario")
+    c.run(f"python {BASE_DIR}/src/mario_scenes/create_clips/create_clips.py -d data/mario")
 
 @task
 def clean_outputs(c):

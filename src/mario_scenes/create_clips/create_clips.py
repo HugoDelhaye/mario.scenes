@@ -15,135 +15,7 @@ from tqdm import tqdm
 from tqdm_joblib import tqdm_joblib
 import traceback
 from mario_scenes.load_data import load_scenes_info
-
-
-
-
-def replay_bk2(
-    bk2_path, skip_first_step=True, game=None, scenario=None, inttype=retro.data.Integrations.CUSTOM_ONLY
-):
-    """Create an iterator that replays a bk2 file, yielding frames, keypresses, annotations, sound, actions, and state."""
-    movie = retro.Movie(bk2_path)
-    if game is None:
-        # If no game is specified, take it from the bk2 header
-        game = movie.get_game()
-    logging.debug(f"Creating emulator for game: {game}")
-    emulator = retro.make(game, scenario=scenario, inttype=inttype, render_mode=None)
-    emulator.initial_state = movie.get_state()
-    actions = emulator.buttons
-    emulator.reset()
-
-    if skip_first_step:
-        movie.step()
-
-    while movie.step():
-        keys = []
-        for p in range(movie.players):
-            for i in range(emulator.num_buttons):
-                keys.append(movie.get_key(i, p))
-        frame, rew, terminate, truncate, info = emulator.step(keys)
-        annotations = {"reward": rew, "done": terminate, "info": info}
-        state = emulator.em.get_state()
-        yield frame, keys, annotations, None, actions, state
-
-    emulator.close()
-    movie.close()
-
-
-def get_variables_from_replay(
-    bk2_fpath, skip_first_step=True, game=None, scenario=None, inttype=retro.data.Integrations.CUSTOM_ONLY
-):
-    """Replay the bk2 file and return game variables and frames."""
-    replay = replay_bk2(
-        bk2_fpath, skip_first_step=skip_first_step, game=game, scenario=scenario, inttype=inttype
-    )
-    all_frames = []
-    all_keys = []
-    all_info = []
-    annotations = {}
-
-    for frame, keys, annotations, _, actions, _ in replay:
-        all_keys.append(keys)
-        all_info.append(annotations["info"])
-        all_frames.append(frame)
-
-    repetition_variables = reformat_info(all_info, all_keys, bk2_fpath, actions)
-
-    if not annotations.get('done', False):
-        logging.warning(f"Done condition not satisfied for {bk2_fpath}. Consider changing skip_first_step.")
-
-    return repetition_variables, all_frames
-
-
-def reformat_info(info, keys, bk2_fpath, actions):
-    """Create a structured dictionary from replay info."""
-    filename = op.basename(bk2_fpath)
-    entities = filename.split('_')
-    entities_dict = {}
-    for ent in entities:
-        if '-' in ent:
-            key, value = ent.split('-', 1)
-            entities_dict[key] = value
-
-    repetition_variables = {
-        "filename": bk2_fpath,
-        "level": entities_dict.get('level'),
-        "subject": entities_dict.get('sub'),
-        "session": entities_dict.get('ses'),
-        "repetition": entities_dict.get('run'),
-        "actions": actions,
-    }
-
-    for key in info[0].keys():
-        repetition_variables[key] = []
-    for button in actions:
-        repetition_variables[button] = []
-
-    for frame_idx, frame_info in enumerate(info):
-        for key in frame_info.keys():
-            repetition_variables[key].append(frame_info[key])
-        for button_idx, button in enumerate(actions):
-            repetition_variables[button].append(keys[frame_idx][button_idx])
-
-    return repetition_variables
-
-
-def make_gif(selected_frames, movie_fname):
-    """Create a GIF file from a list of frames."""
-    frame_list = [Image.fromarray(np.uint8(img), "RGB") for img in selected_frames]
-
-    if not frame_list:
-        logging.warning(f"No frames to save in {movie_fname}")
-        return
-
-    frame_list[0].save(
-        movie_fname, save_all=True, append_images=frame_list[1:], optimize=False, duration=16, loop=0
-    )
-
-
-def make_mp4(selected_frames, movie_fname):
-    """Create an MP4 file from a list of frames."""
-    writer = skvideo.io.FFmpegWriter(
-        movie_fname, inputdict={"-r": "60"}, outputdict={"-r": "60"}
-    )
-    for frame in selected_frames:
-        im = Image.new("RGB", (frame.shape[1], frame.shape[0]), color="white")
-        im.paste(Image.fromarray(frame), (0, 0))
-        writer.writeFrame(np.array(im))
-    writer.close()
-
-
-def make_webp(selected_frames, movie_fname):
-    """Create a WebP file from a list of frames."""
-    frame_list = [Image.fromarray(np.uint8(img), "RGB") for img in selected_frames]
-
-    if not frame_list:
-        logging.warning(f"No frames to save in {movie_fname}")
-        return
-
-    frame_list[0].save(
-        movie_fname, 'WEBP', quality=50, lossless=False, save_all=True, append_images=frame_list[1:], duration=16, loop=0
-    )
+from mario_replays.utils import replay_bk2, get_variables_from_replay, reformat_info, make_mp4, make_gif, make_webp
 
 
 def replay_clip_for_savestate_and_ramdump(
@@ -175,7 +47,7 @@ def replay_clip_for_savestate_and_ramdump(
         np.savez_compressed(ramdump_fname, states_list)
 
 
-def process_bk2_file(bk2_info, args, scenes_info_dict, DATA_PATH, DERIVATIVES_FOLDER, STIMULI_PATH):
+def process_bk2_file(bk2_info, args, scenes_info_dict, DATA_PATH, OUTPUT_FOLDER, STIMULI_PATH):
     """
     Process a single bk2 file to extract clips, saving only the requested file types:
     - savestate (.state)
@@ -202,7 +74,7 @@ def process_bk2_file(bk2_info, args, scenes_info_dict, DATA_PATH, DERIVATIVES_FO
         sub = bk2_info['sub']
         ses = bk2_info['ses']
         run = bk2_info['run']
-        skip_first_step = bk2_idx == 0
+        skip_first_step = bk2_idx == 0 ##################################################################### TODO : FIX THIS
 
         logging.info(f"Processing bk2 file: {bk2_file}")
         rep_order_string = f'{str(ses).zfill(3)}{str(run).zfill(2)}{str(bk2_idx).zfill(2)}'
@@ -214,15 +86,15 @@ def process_bk2_file(bk2_info, args, scenes_info_dict, DATA_PATH, DERIVATIVES_FO
             return error_logs, processing_stats
 
         # We'll always need to detect scene boundaries, so let's replay once:
-        repvars, frames_list = get_variables_from_replay(
+        repetition_variables, frames_list = get_variables_from_replay(
             op.join(DATA_PATH, bk2_file),
             skip_first_step=skip_first_step,
             game=args.game_name,
             inttype=retro.data.Integrations.CUSTOM_ONLY
         )
         n_frames_total = len(frames_list)
-        repvars['player_x_pos'] = [
-            hi * 256 + lo for hi, lo in zip(repvars['player_x_posHi'], repvars['player_x_posLo'])
+        repetition_variables['player_x_pos'] = [
+            hi * 256 + lo for hi, lo in zip(repetition_variables['player_x_posHi'], repetition_variables['player_x_posLo'])
         ]
 
         # Check if we need visual frames (gif/mp4/webp)
@@ -239,25 +111,25 @@ def process_bk2_file(bk2_info, args, scenes_info_dict, DATA_PATH, DERIVATIVES_FO
             for frame_idx in range(1, n_frames_total):
                 if not start_found:
                     if (
-                        repvars['player_x_pos'][frame_idx] >= scene_start
-                        and repvars['player_x_pos'][frame_idx - 1] < scene_start
-                        and repvars['player_x_pos'][frame_idx] < scene_end
-                        and repvars['level_layout'][frame_idx] == level_layout
+                        repetition_variables['player_x_pos'][frame_idx] >= scene_start
+                        and repetition_variables['player_x_pos'][frame_idx - 1] < scene_start
+                        and repetition_variables['player_x_pos'][frame_idx] < scene_end
+                        and repetition_variables['level_layout'][frame_idx] == level_layout
                     ):
                         start_idx = frame_idx
                         start_found = True
                 else:
                     if (
-                        (repvars['player_x_pos'][frame_idx] >= scene_end
-                         and repvars['player_x_pos'][frame_idx - 1] < scene_end)
-                        or (repvars['lives'][frame_idx] - repvars['lives'][frame_idx - 1] < 0)
+                        (repetition_variables['player_x_pos'][frame_idx] >= scene_end
+                         and repetition_variables['player_x_pos'][frame_idx - 1] < scene_end)
+                        or (repetition_variables['lives'][frame_idx] - repetition_variables['lives'][frame_idx - 1] < 0)
                     ):
                         end_idx = frame_idx
                         start_found = False
                         scenes_info_found.append([start_idx, end_idx])
                     elif (
-                        repvars['player_x_pos'][frame_idx] >= scene_start
-                        and repvars['player_x_pos'][frame_idx - 1] < scene_start
+                        repetition_variables['player_x_pos'][frame_idx] >= scene_start
+                        and repetition_variables['player_x_pos'][frame_idx - 1] < scene_start
                     ):
                         start_idx = frame_idx
 
@@ -272,7 +144,7 @@ def process_bk2_file(bk2_info, args, scenes_info_dict, DATA_PATH, DERIVATIVES_FO
                 assert len(clip_code) == 14, f"Invalid clip code: {clip_code}"
 
                 # Construct BIDS-compliant paths
-                deriv_folder = op.join(DERIVATIVES_FOLDER, args.output_name)
+                deriv_folder = op.join(OUTPUT_FOLDER, args.output_name)
                 sub_folder = op.join(deriv_folder, f"sub-{sub}")
                 ses_folder = op.join(sub_folder, f"ses-{ses}")
                 beh_folder = op.join(ses_folder, 'beh')
@@ -282,7 +154,7 @@ def process_bk2_file(bk2_info, args, scenes_info_dict, DATA_PATH, DERIVATIVES_FO
                 os.makedirs(savestates_folder, exist_ok=True)
 
                 entities = (
-                    f"sub-{sub}_ses-{ses}_run-{run}_level-{repvars['level']}_"
+                    f"sub-{sub}_ses-{ses}_run-{run}_level-{repetition_variables['level']}_"
                     f"scene-{int(current_scene.split('s')[1])}_clip-{clip_code}"
                 )
 
@@ -339,7 +211,7 @@ def process_bk2_file(bk2_info, args, scenes_info_dict, DATA_PATH, DERIVATIVES_FO
                             'Subject': sub,
                             'Session': ses,
                             'Run': run,
-                            'Level': repvars['level'],
+                            'Level': repetition_variables['level'],
                             'Scene': int(current_scene.split('s')[1]),
                             'ClipCode': clip_code,
                             'StartFrame': start_idx,
@@ -412,7 +284,7 @@ def collect_bk2_files(DATA_PATH, subjects=None, sessions=None):
 
                 # Gather the BK2 paths from the events file
                 bk2_files = events_dataframe['stim_file'].values.tolist()
-                for bk2_idx, bk2_file in enumerate(bk2_files):
+                for bk2_idx, bk2_file in enumerate(bk2_files): #### THIS IS A PROBLEM, WRONG BK2_IDX
                     if bk2_file != "Missing file" and not isinstance(bk2_file, float):
                         bk2_files_info.append({
                             'bk2_file': bk2_file,
@@ -426,6 +298,9 @@ def collect_bk2_files(DATA_PATH, subjects=None, sessions=None):
 
 
 def main(args):
+    # Get datapath
+    DATA_PATH = op.abspath(args.datapath)
+
     # Set up logging based on verbosity level
     if args.verbose == 0:
         logging_level = logging.WARNING
@@ -439,10 +314,10 @@ def main(args):
     # and change pipeline folder name accordingly.
     if args.simple:
         args.game_name = 'SuperMarioBrosSimple-Nes'
-        args.output_name = 'mario_scenes_simple'
+        args.output_name = 'scene_clips_simple'
     else:
         args.game_name = 'SuperMarioBros-Nes'
-        args.output_name = 'mario_scenes'
+        args.output_name = 'scene_clips'
 
     # Determine which file types to generate.
     # If none are specified, we generate them all by default (including json).
@@ -450,38 +325,34 @@ def main(args):
         args.filetypes_to_generate = ['savestate', 'ramdump', 'gif', 'mp4', 'webp', 'json']
     else:
         args.filetypes_to_generate = args.filetypes
-
     # Convert to a set for easy membership checks
     args.filetypes_to_generate = set(args.filetypes_to_generate)
-
-    # Get datapath
-    DATA_PATH = op.abspath(args.datapath)
 
     # Load scenes
     scenes_info_dict = load_scenes_info(format='dict')
 
     # Setup derivatives folder
     if args.output is None:
-        DERIVATIVES_FOLDER = op.join(DATA_PATH, "derivatives")
+        OUTPUT_FOLDER = op.join(DATA_PATH, "derivatives")
     else:
-        DERIVATIVES_FOLDER = op.abspath(args.output)
-    os.makedirs(DERIVATIVES_FOLDER, exist_ok=True)
+        OUTPUT_FOLDER = op.abspath(args.output)
+    os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 
     # Integrate game
-    if args.stimuli_path is None:
+    if args.stimuli is None:
         STIMULI_PATH = op.abspath(op.join(DATA_PATH, "stimuli"))
     else:
         STIMULI_PATH = op.abspath(args.stimuli_path)
-    logging.debug(f"Adding custom stimuli path: {STIMULI_PATH}")
+
+    logging.debug(f"Adding stimuli path: {STIMULI_PATH}")
     retro.data.Integrations.add_custom_path(STIMULI_PATH)
     games_list = retro.data.list_games(inttype=retro.data.Integrations.CUSTOM_ONLY)
     logging.debug(f"Available games: {games_list}")
-
     logging.info(f"Game to use: {args.game_name}")
     logging.info(f"Output dataset name: {args.output_name}")
     logging.info(f"Generating clips for the dataset in: {DATA_PATH}")
     logging.info(f"Taking stimuli from: {STIMULI_PATH}")
-    logging.info(f"Saving derivatives in: {DERIVATIVES_FOLDER}")
+    logging.info(f"Saving derivatives in: {OUTPUT_FOLDER}")
     logging.info(f"Requested file types: {args.filetypes_to_generate}")
 
     # Collect all bk2 files and related information
@@ -494,7 +365,7 @@ def main(args):
 
     with tqdm_joblib(tqdm(desc="Processing bk2 files", total=total_bk2_files)):
         results = Parallel(n_jobs=n_jobs)(
-            delayed(process_bk2_file)(bk2_info, args, scenes_info_dict, DATA_PATH, DERIVATIVES_FOLDER, STIMULI_PATH)
+            delayed(process_bk2_file)(bk2_info, args, scenes_info_dict, DATA_PATH, OUTPUT_FOLDER, STIMULI_PATH)
             for bk2_info in bk2_files_info
         )
 
@@ -521,12 +392,12 @@ def main(args):
         'GeneratedBy': [{
             'Name': 'Courtois Neuromod',
             'Version': '1.0.0',
-            'CodeURL': 'https://github.com/courtois-neuromod/mario_scenes/script/clip_extractor.py'
+            'CodeURL': 'https://github.com/courtois-neuromod/mario.scenes/src/mario_scenes/clips_extraction/clip_extraction.py'
         }],
         'SourceDatasets': [{'URL': 'https://github.com/courtois-neuromod/mario/'}],
         'License': 'CC0',
     }
-    deriv_folder = op.join(DERIVATIVES_FOLDER, args.output_name)
+    deriv_folder = op.join(OUTPUT_FOLDER, args.output_name)
     os.makedirs(deriv_folder, exist_ok=True)
     with open(op.join(deriv_folder, "dataset_description.json"), "w") as f:
         json.dump(dataset_description, f, indent=4)
@@ -565,7 +436,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "-sp",
-        "--stimuli_path",
+        "--stimuli",
         default=None,
         type=str,
         help="Path to the stimuli folder containing the game ROMs. Defaults to <datapath>/stimuli if not specified.",
@@ -604,4 +475,6 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
+
+
     main(args)

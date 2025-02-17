@@ -34,6 +34,14 @@ invoke collect-resources
 invoke run-analysis
 ```
 
+## To create savestates or other files
+- Run the create_clips.py script manually.
+- Specify files arguments.
+Example :
+```
+python src/mario_scenes/create_clips/create_clips.py -d data/mario --filetypes ramdump mp4 json
+```
+
 ## Acknowledgements
 
 - This script uses the [Gym Retro](https://github.com/openai/retro) library for replaying game recordings.

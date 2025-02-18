@@ -69,4 +69,4 @@ def full_pipeline(c):
     """Runs the full pipeline from data cleaning to dashboard."""
     #invoke_pipeline = "invoke setup_env collect_resources dimensionality_reduction cluster_scenes"
     #c.run(f"datalad run -m 'Full pipeline execution' --python \"{invoke_pipeline}\"")
-    c.run("invoke setup-env collect-resources dimensionality-reduction cluster-scenes")
+    c.run("invoke setup-env collect-resources dimensionality-reduction cluster-scenes create-clips")

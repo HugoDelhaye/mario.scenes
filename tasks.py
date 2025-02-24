@@ -36,7 +36,7 @@ def setup_env_on_beluga(c):
           "python -m venv ./mario_scenes_env && "
           "cd mario_scenes_env/lib/python3.10/site-packages && "
           "git clone git@github.com:farama-foundation/stable-retro && "
-          "cd ../../../..&& "
+          "cd ../../../.. && "
           "source ./mario_scenes_env/bin/activate && "
           "pip install -e mario_scenes_env/lib/python3.10/site-packages/stable-retro/. && "
           "pip install -r requirements_beluga.txt && "

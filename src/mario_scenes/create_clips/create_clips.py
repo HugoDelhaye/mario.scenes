@@ -85,7 +85,7 @@ def process_bk2_file(bk2_info, args, scenes_info_dict, DATA_PATH, OUTPUT_FOLDER,
             logging.info(f"No matching scenes for level {curr_level} in {bk2_file}, skipping.")
             return error_logs, processing_stats
 
-        # We'll always need to detect scene boundaries, so let's replay once:
+        # Run replay
         repetition_variables, frames_list = get_variables_from_replay(
             op.join(DATA_PATH, bk2_file),
             skip_first_step=skip_first_step,
@@ -218,7 +218,7 @@ def process_bk2_file(bk2_info, args, scenes_info_dict, DATA_PATH, OUTPUT_FOLDER,
                             'EndFrame': end_idx,
                             'TotalFrames': n_frames_total,
                             'bk2_filepath': bk2_file,
-                            'game_name': args.game_name,
+                            'GameName': args.game_name,
                         }
                         with open(json_fname, 'w') as json_file:
                             json.dump(metadata, json_file, indent=4)

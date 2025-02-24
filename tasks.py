@@ -24,8 +24,23 @@ def cluster_scenes(c):
 @task
 def setup_env(c):
     """Sets up the virtual environment and installs dependencies."""
+    c.run("python -m venv ./mario_scenes_env")
+    c.run("source ./mario_scenes_env/bin/activate")
     c.run("pip install -r requirements.txt")
     c.run("pip install -e .")
+
+@task
+def setup_env_on_beluga(c):
+    """Sets up the virtual environment and installs dependencies on Beluga."""
+    c.run("module load python/3.10 && "
+          "python -m venv ./mario_scenes_env && "
+          "cd env/lib/python3.10/site-packages && "
+          "git clone git@github.com:farama-foundation/stable-retro && "
+          "cd ../../../..&& "
+          "source ./mario_scenes_env/bin/activate && "
+          "pip install -e env/lib/python3.10/site-packages/stable-retro/. && "
+          "pip install -r requirements.txt && "
+          "pip install -e .")
 
 @task
 def set_mario_dataset(c):
@@ -45,6 +60,8 @@ def set_mario_dataset(c):
         "datalad get ."
     )
     c.run(command)
+
+
 
 @task 
 def create_clips(c):

@@ -11,17 +11,30 @@ Install the [cneuromod.mario](https://github.com/courtois-neuromod/mario) datase
 Make sure the mario dataset is on the branch `events`.
 
 ## Usage
+
 - Download the repository via git : 
 ```
 git clone git@github.com:courtois-neuromod/mario_scenes
 ```
 
+### First time use
 - Create an env and install the package : 
 ```
 cd mario_scenes
 python -m venv mario_scenes_env
 source mario_scenes_env/bin/activate
 invoke setup-env
+```
+
+- On beluga (or any other compute canada cluster), simply install invoke and run setup-env-on-beluga
+```
+pip install invoke
+invoke setup-env-on-beluga
+```
+
+- Then activate the environment
+```
+source mario_scenes_env/bin/activate
 ```
 
 - Download resources (`scenes_mastersheet.tsv` in particular): 
@@ -33,6 +46,12 @@ invoke collect-resources
 ```
 invoke run-analysis
 ```
+
+- Create clips (by default, creates only .json descriptive files)
+```
+invoke create-clips
+```
+
 
 ## To create savestates or other files
 - Run the create_clips.py script manually.

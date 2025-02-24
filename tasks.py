@@ -34,12 +34,12 @@ def setup_env_on_beluga(c):
     """Sets up the virtual environment and installs dependencies on Beluga."""
     c.run("module load python/3.10 && "
           "python -m venv ./mario_scenes_env && "
-          "cd env/lib/python3.10/site-packages && "
+          "cd mario_scenes_env/lib/python3.10/site-packages && "
           "git clone git@github.com:farama-foundation/stable-retro && "
           "cd ../../../..&& "
           "source ./mario_scenes_env/bin/activate && "
-          "pip install -e env/lib/python3.10/site-packages/stable-retro/. && "
-          "pip install -r requirements.txt && "
+          "pip install -e mario_scenes_env/lib/python3.10/site-packages/stable-retro/. && "
+          "pip install -r requirements_beluga.txt && "
           "pip install -e .")
 
 @task

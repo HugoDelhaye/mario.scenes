@@ -15,8 +15,27 @@ from tqdm import tqdm
 from tqdm_joblib import tqdm_joblib
 import traceback
 from mario_scenes.load_data import load_scenes_info
-from mario_replays.utils import replay_bk2, get_variables_from_replay, make_mp4, make_gif, make_webp, collect_bk2_files
+from mario_replays.utils import replay_bk2, get_variables_from_replay, make_mp4, make_gif, make_webp, collect_bk2_files, create_sidecar_dict
 
+def prune_variables(variables, start_idx, end_idx):
+    """
+    Prune variables to the specified frame range.
+    """
+    pruned_variables = {}
+    for key, value in variables.items():
+        if isinstance(value, (list, np.ndarray)):
+            pruned_variables[key] = value[start_idx:end_idx]
+        else:
+            pruned_variables[key] = value
+    return pruned_variables
+
+def merge_metadata(metadata, sidecar):
+    """
+    Merge metadata with sidecar variables.
+    """
+    enriched_metadata = metadata.copy()
+    enriched_metadata.update(sidecar)
+    return enriched_metadata
 
 def replay_clip_for_savestate_and_ramdump(
     start_idx, end_idx, bk2_fpath, savestate_fname=None, ramdump_fname=None,
@@ -74,7 +93,7 @@ def process_bk2_file(bk2_info, args, scenes_info_dict, DATA_PATH, OUTPUT_FOLDER,
         sub = bk2_info['sub']
         ses = bk2_info['ses']
         run = bk2_info['run']
-        skip_first_step = bk2_idx == 0 ##################################################################### TODO : TEST/FIX THIS
+        skip_first_step = bk2_idx == 0
 
         logging.info(f"Processing bk2 file: {bk2_file}")
         rep_order_string = f'{str(ses).zfill(3)}{str(run).zfill(2)}{str(bk2_idx).zfill(2)}'
@@ -86,7 +105,7 @@ def process_bk2_file(bk2_info, args, scenes_info_dict, DATA_PATH, OUTPUT_FOLDER,
             return error_logs, processing_stats
 
         # Run replay
-        repetition_variables, frames_list = get_variables_from_replay(
+        repetition_variables, replay_info, frames_list, replay_states = get_variables_from_replay(
             op.join(DATA_PATH, bk2_file),
             skip_first_step=skip_first_step,
             game=args.game_name,
@@ -96,9 +115,6 @@ def process_bk2_file(bk2_info, args, scenes_info_dict, DATA_PATH, OUTPUT_FOLDER,
         repetition_variables['player_x_pos'] = [
             hi * 256 + lo for hi, lo in zip(repetition_variables['player_x_posHi'], repetition_variables['player_x_posLo'])
         ]
-
-        # Check if we need visual frames (gif/mp4/webp)
-        needs_visual = any(ftype in args.filetypes_to_generate for ftype in ['gif', 'mp4', 'webp'])
 
         scenes_in_current_level = [x for x in scenes_info_dict.keys() if curr_level in x]
         for current_scene in tqdm(scenes_in_current_level, desc=f"Processing scenes in {bk2_file}", leave=False):
@@ -135,10 +151,8 @@ def process_bk2_file(bk2_info, args, scenes_info_dict, DATA_PATH, OUTPUT_FOLDER,
 
             for pattern in scenes_info_found:
                 start_idx, end_idx = pattern
-                if needs_visual:
-                    selected_frames = frames_list[start_idx:end_idx]
-                else:
-                    selected_frames = []
+
+                selected_frames = frames_list[start_idx:end_idx]
 
                 clip_code = f'{rep_order_string}{str(start_idx).zfill(7)}'
                 assert len(clip_code) == 14, f"Invalid clip code: {clip_code}"
@@ -166,62 +180,51 @@ def process_bk2_file(bk2_info, args, scenes_info_dict, DATA_PATH, OUTPUT_FOLDER,
                 ramdump_fname   = savestate_fname.replace(".state", "_ramdump.npz")
                 json_fname      = op.join(clips_folder,      f"{entities}_beh.json")
 
-                # Check which outputs still need to be generated
-                needs_savestate = ('savestate' in args.filetypes_to_generate) and not op.exists(savestate_fname)
-                needs_ramdump   = ('ramdump'   in args.filetypes_to_generate) and not op.exists(ramdump_fname)
-                needs_gif       = ('gif'       in args.filetypes_to_generate) and not op.exists(gif_fname)
-                needs_mp4       = ('mp4'       in args.filetypes_to_generate) and not op.exists(mp4_fname)
-                needs_webp      = ('webp'      in args.filetypes_to_generate) and not op.exists(webp_fname)
-                needs_json      = ('json'      in args.filetypes_to_generate) and not op.exists(json_fname)
+                metadata = {
+                    'Subject': sub,
+                    'Session': ses,
+                    'Run': run,
+                    'Level': repetition_variables['level'],
+                    'Scene': int(current_scene.split('s')[1]),
+                    'ClipCode': clip_code,
+                    'StartFrame': start_idx,
+                    'EndFrame': end_idx,
+                    'TotalFrames': n_frames_total,
+                    'bk2_filepath': bk2_file,
+                    'GameName': args.game_name,
+                }
+
+                scene_variables = prune_variables(repetition_variables, start_idx, end_idx)
+
+                scene_sidecar = create_sidecar_dict(scene_variables)
+
+                enriched_metadata = merge_metadata(metadata, scene_sidecar)
+
+                with open(json_fname, 'w') as json_file:
+                    json.dump(enriched_metadata, json_file, indent=4)
 
                 # If nothing is needed for this clip, skip it.
-                if not any([needs_savestate, needs_ramdump, needs_gif, needs_mp4, needs_webp, needs_json]):
+                if not any([args.save_states, args.save_ramdumps, args.save_videos]):
                     logging.info(f"All requested files exist for clip code {clip_code}, skipping.")
                     processing_stats['clips_skipped'] += 1
                     continue
 
                 try:
                     # Generate GIF
-                    if needs_gif:
-                        make_gif(selected_frames, gif_fname)
+                    if args.save_videos:
+                        if args.video_format == 'gif':
+                            make_gif(selected_frames, gif_fname)
+                        elif args.video_format == 'mp4':
+                            make_mp4(selected_frames, mp4_fname)
+                        elif args.video_format == 'webp':
+                            make_webp(selected_frames, webp_fname)
 
-                    # Generate MP4
-                    if needs_mp4:
-                        make_mp4(selected_frames, mp4_fname)
+                    if args.save_states:
+                        with gzip.open(savestate_fname, "wb") as fh:
+                            fh.write(replay_states[start_idx])
+                    if args.save_ramdumps:
+                        np.savez_compressed(ramdump_fname, replay_states[start_idx:end_idx])
 
-                    # Generate WebP
-                    if needs_webp:
-                        make_webp(selected_frames, webp_fname)
-
-                    # Generate savestate / ramdump
-                    if needs_savestate or needs_ramdump:
-                        replay_clip_for_savestate_and_ramdump(
-                            start_idx=start_idx,
-                            end_idx=end_idx,
-                            bk2_fpath=bk2_file,
-                            savestate_fname=savestate_fname if needs_savestate else None,
-                            ramdump_fname=ramdump_fname     if needs_ramdump   else None,
-                            skip_first_step=skip_first_step,
-                            game=args.game_name
-                        )
-
-                    # Generate JSON sidecar if requested
-                    if needs_json:
-                        metadata = {
-                            'Subject': sub,
-                            'Session': ses,
-                            'Run': run,
-                            'Level': repetition_variables['level'],
-                            'Scene': int(current_scene.split('s')[1]),
-                            'ClipCode': clip_code,
-                            'StartFrame': start_idx,
-                            'EndFrame': end_idx,
-                            'TotalFrames': n_frames_total,
-                            'bk2_filepath': bk2_file,
-                            'GameName': args.game_name,
-                        }
-                        with open(json_fname, 'w') as json_file:
-                            json.dump(metadata, json_file, indent=4)
 
                     processing_stats['clips_processed'] += 1
 
@@ -267,14 +270,6 @@ def main(args):
         args.game_name = 'SuperMarioBros-Nes'
         args.output_name = 'scene_clips'
 
-    # Determine which file types to generate.
-    # If none are specified, we generate them all by default (including json).
-    if not args.filetypes:
-        args.filetypes_to_generate = ['savestate', 'ramdump', 'gif', 'mp4', 'webp', 'json']
-    else:
-        args.filetypes_to_generate = args.filetypes
-    # Convert to a set for easy membership checks
-    args.filetypes_to_generate = set(args.filetypes_to_generate)
 
     # Load scenes
     scenes_info_dict = load_scenes_info(format='dict')
@@ -301,7 +296,6 @@ def main(args):
     logging.info(f"Generating clips for the dataset in: {DATA_PATH}")
     logging.info(f"Taking stimuli from: {STIMULI_PATH}")
     logging.info(f"Saving derivatives in: {OUTPUT_FOLDER}")
-    logging.info(f"Requested file types: {args.filetypes_to_generate}")
 
     # Collect all bk2 files and related information
     bk2_files_info = collect_bk2_files(DATA_PATH, args.subjects, args.sessions)
@@ -397,17 +391,37 @@ if __name__ == "__main__":
              "If none is specified, all are generated by default (savestate, ramdump, gif, mp4, webp, json).",
     )
     parser.add_argument(
-        "--simple",
-        action="store_true",
-        help="If set, use the simplified game version (SuperMarioBrosSimple-Nes) "
-             "and output into 'mario_scenes_simple' subfolder instead of 'mario_scenes'."
-    )
-    parser.add_argument(
         "-n",
         "--n_jobs",
         default=-1,
         type=int,
         help="Number of CPU cores to use for parallel processing.",
+    )
+    parser.add_argument(
+        "--save_videos",
+        action="store_true",
+        help="Save the playback video file (.mp4).",
+    )
+    parser.add_argument(
+        "--save_variables",
+        action="store_true",
+        help="Save the variables file (.npz) that contains game variables.",
+    )
+    parser.add_argument(
+        "--save_states",
+        action="store_true",
+        help="Save full RAM state at each frame into a *_states.npy file.",
+    )
+    parser.add_argument(
+        "--save_ramdumps",
+        action="store_true",
+        help="Save RAM dumps at each frame into a *_ramdumps.npy file.",
+    )
+    parser.add_argument(
+        "--simple",
+        action="store_true",
+        help="If set, use the simplified game version (SuperMarioBrosSimple-Nes) "
+             "and output into 'mario_scenes_simple' subfolder instead of 'mario_scenes'."
     )
     parser.add_argument(
         '-v', '--verbose', action='count', default=0,
@@ -421,8 +435,14 @@ if __name__ == "__main__":
         '--sessions', '-ses', nargs='+', default=None,
         help='List of sessions to process (e.g., ses-001 ses-002). If not specified, all sessions are processed.'
     )
+    parser.add_argument(
+        '--video_format', '-vf', default='mp4',
+        choices=['gif', 'mp4', 'webp'],
+        help='Video format to save (default: mp4).'
+    )
 
     args = parser.parse_args()
 
 
     main(args)
+

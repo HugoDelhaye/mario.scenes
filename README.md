@@ -6,10 +6,6 @@ This repo is a companion of the [cneuromod.mario](https://github.com/courtois-ne
 - [mario_learning](https://github.com/courtois-neuromod/mario_learning)
 - [mario_curiosity.scene_agents](https://github.com/courtois-neuromod/mario_curiosity.scene_agents)
 
-## Prerequisites
-Install the [cneuromod.mario](https://github.com/courtois-neuromod/mario) dataset and the related [stimuli]https://github.com/courtois-neuromod/mario.stimuli. 
-Make sure the mario dataset is on the branch `events`.
-
 ## Usage
 
 - Download the repository via git : 

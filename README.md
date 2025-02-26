@@ -51,7 +51,7 @@ export AWS_ACCESS_KEY_ID=<s3_access_key>  AWS_SECRET_ACCESS_KEY=<s3_secret_key>
 
 - Setup the mario dataset
 ```
-invoke set-mario-dataset
+invoke setup-mario-dataset
 ```
 
 - Create clips (by default, creates only .json descriptive files)

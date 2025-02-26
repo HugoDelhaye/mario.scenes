@@ -26,7 +26,7 @@ source mario_scenes_env/bin/activate
 invoke setup-env
 ```
 
-- On beluga (or any other compute canada cluster), simply install invoke and run setup-env-on-beluga
+- IF ON BELUGA (or any other compute canada cluster), simply install invoke and run setup-env-on-beluga
 ```
 pip install invoke
 invoke setup-env-on-beluga
@@ -47,6 +47,17 @@ invoke collect-resources
 invoke run-analysis
 ```
 
+### To create clips
+- Make sure your AWS key is exported
+```
+export AWS_ACCESS_KEY_ID=<s3_access_key>  AWS_SECRET_ACCESS_KEY=<s3_secret_key>
+```
+
+- Setup the mario dataset
+```
+invoke set-mario-dataset
+```
+
 - Create clips (by default, creates only .json descriptive files)
 ```
 invoke create-clips
@@ -58,7 +69,7 @@ invoke create-clips
 - Specify files arguments.
 Example :
 ```
-python src/mario_scenes/create_clips/create_clips.py -d data/mario --filetypes ramdump mp4 json
+python src/mario_scenes/create_clips/create_clips.py -d data/mario --save_videos --save_states
 ```
 
 ## Acknowledgements

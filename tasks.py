@@ -43,7 +43,7 @@ def setup_env_on_beluga(c):
           "pip install -e .")
 
 @task
-def set_mario_dataset(c):
+def setup_mario_dataset(c):
     """Sets up the Mario dataset."""
     command = (
         "mkdir -p data && "

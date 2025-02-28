@@ -15,7 +15,8 @@ from tqdm import tqdm
 from tqdm_joblib import tqdm_joblib
 import traceback
 from mario_scenes.load_data import load_scenes_info
-from mario_replays.utils import replay_bk2, get_variables_from_replay, make_mp4, make_gif, make_webp, collect_bk2_files
+from mario_replays.utils import replay_bk2, get_variables_from_replay, make_mp4, make_gif, make_webp
+from mario_replays.load_data import collect_bk2_files
 
 
 def replay_clip_for_savestate_and_ramdump(

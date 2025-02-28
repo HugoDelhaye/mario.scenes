@@ -24,11 +24,26 @@ def cluster_scenes(c):
 @task
 def setup_env(c):
     """Sets up the virtual environment and installs dependencies."""
+    c.run("python -m venv ./mario_scenes_env")
+    c.run("source ./mario_scenes_env/bin/activate")
     c.run("pip install -r requirements.txt")
     c.run("pip install -e .")
 
 @task
-def set_mario_dataset(c):
+def setup_env_on_beluga(c):
+    """Sets up the virtual environment and installs dependencies on Beluga."""
+    c.run("module load python/3.10 && "
+          "python -m venv ./mario_scenes_env && "
+          "cd mario_scenes_env/lib/python3.10/site-packages && "
+          "git clone git@github.com:farama-foundation/stable-retro && "
+          "cd ../../../.. && "
+          "source ./mario_scenes_env/bin/activate && "
+          "pip install -e mario_scenes_env/lib/python3.10/site-packages/stable-retro/. && "
+          "pip install -r requirements_beluga.txt && "
+          "pip install -e .")
+
+@task
+def setup_mario_dataset(c):
     """Sets up the Mario dataset."""
     command = (
         "mkdir -p data && "
@@ -45,6 +60,8 @@ def set_mario_dataset(c):
         "datalad get ."
     )
     c.run(command)
+
+
 
 @task 
 def create_clips(c):
@@ -69,4 +86,4 @@ def full_pipeline(c):
     """Runs the full pipeline from data cleaning to dashboard."""
     #invoke_pipeline = "invoke setup_env collect_resources dimensionality_reduction cluster_scenes"
     #c.run(f"datalad run -m 'Full pipeline execution' --python \"{invoke_pipeline}\"")
-    c.run("invoke setup-env collect-resources dimensionality-reduction cluster-scenes")
+    c.run("invoke collect-resources dimensionality-reduction cluster-scenes create-clips")

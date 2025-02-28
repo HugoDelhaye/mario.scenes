@@ -6,22 +6,31 @@ This repo is a companion of the [cneuromod.mario](https://github.com/courtois-ne
 - [mario_learning](https://github.com/courtois-neuromod/mario_learning)
 - [mario_curiosity.scene_agents](https://github.com/courtois-neuromod/mario_curiosity.scene_agents)
 
-## Prerequisites
-Install the [cneuromod.mario](https://github.com/courtois-neuromod/mario) dataset and the related [stimuli]https://github.com/courtois-neuromod/mario.stimuli. 
-Make sure the mario dataset is on the branch `events`.
-
 ## Usage
+
 - Download the repository via git : 
 ```
 git clone git@github.com:courtois-neuromod/mario_scenes
 ```
 
+### First time use
 - Create an env and install the package : 
 ```
 cd mario_scenes
 python -m venv mario_scenes_env
 source mario_scenes_env/bin/activate
 invoke setup-env
+```
+
+- IF ON BELUGA (or any other compute canada cluster), simply install invoke and run setup-env-on-beluga
+```
+pip install invoke
+invoke setup-env-on-beluga
+```
+
+- Then activate the environment
+```
+source mario_scenes_env/bin/activate
 ```
 
 - Download resources (`scenes_mastersheet.tsv` in particular): 
@@ -34,12 +43,29 @@ invoke collect-resources
 invoke run-analysis
 ```
 
+### To create clips
+- Make sure your AWS key is exported
+```
+export AWS_ACCESS_KEY_ID=<s3_access_key>  AWS_SECRET_ACCESS_KEY=<s3_secret_key>
+```
+
+- Setup the mario dataset
+```
+invoke setup-mario-dataset
+```
+
+- Create clips (by default, creates only .json descriptive files)
+```
+invoke create-clips
+```
+
+
 ## To create savestates or other files
 - Run the create_clips.py script manually.
 - Specify files arguments.
 Example :
 ```
-python src/mario_scenes/create_clips/create_clips.py -d data/mario --filetypes ramdump mp4 json
+python src/mario_scenes/create_clips/create_clips.py -d data/mario --save_videos --save_states
 ```
 
 ## Acknowledgements

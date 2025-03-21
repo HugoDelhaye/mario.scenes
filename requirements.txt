@@ -16,3 +16,4 @@ seaborn
 invoke
 umap-learn
 scikit-learn
+opencv-python

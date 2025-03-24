@@ -61,7 +61,9 @@ def setup_mario_dataset(c):
     )
     c.run(command)
 
-
+# ===============================
+# 🔹 TASKS: Main
+# ===============================
 
 @task 
 def create_clips(c):
@@ -69,17 +71,12 @@ def create_clips(c):
     c.run(f"python {BASE_DIR}/src/mario_scenes/create_clips/create_clips.py -d data/mario")
 
 @task
-def clean_outputs(c):
-    """Removes temporary files and cached data."""
-    c.run("rm -rf outputs/*")
-
-@task
 def collect_resources(c):
     """Collects resources for the project."""
     c.run("mkdir -p resources")
-    c.run('wget "https://zenodo.org/records/14868355/files/mario_scenes_manual_annotation.pdf?download=1" -O resources/mario_scenes_manual_annotation.pdf')
-    c.run('wget "https://zenodo.org/records/14868355/files/scenes_mastersheet.json?download=1" -O resources/scenes_mastersheet.json')
-    c.run('wget "https://zenodo.org/records/14868355/files/scenes_mastersheet.csv?download=1" -O resources/scenes_mastersheet.csv')
+    c.run('wget "https://zenodo.org/records/15078607/files/mario_scenes_manual_annotation.pdf?download=1" -O resources/mario_scenes_manual_annotation.pdf')
+    c.run('wget "https://zenodo.org/records/15078607/files/scenes_mastersheet.json?download=1" -O resources/scenes_mastersheet.json')
+    c.run('wget "https://zenodo.org/records/15078607/files/scenes_mastersheet.csv?download=1" -O resources/scenes_mastersheet.csv')
 
 @task
 def full_pipeline(c):

@@ -10,7 +10,7 @@ This repo is a companion of the [cneuromod.mario](https://github.com/courtois-ne
 
 - Download the repository via git : 
 ```
-git clone git@github.com:courtois-neuromod/mario_scenes
+git clone git@github.com:courtois-neuromod/mario.scenes
 ```
 
 ### First time use
@@ -19,6 +19,7 @@ git clone git@github.com:courtois-neuromod/mario_scenes
 cd mario_scenes
 python -m venv mario_scenes_env
 source mario_scenes_env/bin/activate
+pip install invoke
 invoke setup-env
 ```
 
@@ -26,11 +27,6 @@ invoke setup-env
 ```
 pip install invoke
 invoke setup-env-on-beluga
-```
-
-- Then activate the environment
-```
-source mario_scenes_env/bin/activate
 ```
 
 - Download resources (`scenes_mastersheet.tsv` in particular): 

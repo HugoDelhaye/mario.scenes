@@ -17,3 +17,4 @@ invoke
 umap-learn
 scikit-learn
 opencv-python
+git+https://github.com/courtois-neuromod/mario.replays.git

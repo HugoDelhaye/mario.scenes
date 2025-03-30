@@ -24,16 +24,16 @@ def cluster_scenes(c):
 @task
 def setup_env(c):
     """Sets up the virtual environment and installs dependencies."""
-    c.run("python -m venv ./mario_scenes_env")
-    c.run("source ./mario_scenes_env/bin/activate")
-    c.run("pip install -r requirements.txt")
-    c.run("pip install -e .")
+    c.run(f"python -m venv {BASE_DIR}/env && "
+          f"source {BASE_DIR}/env/bin/activate && "
+          "pip install -r requirements.txt && "
+          "pip install -e .")
 
 @task
 def setup_env_on_beluga(c):
     """Sets up the virtual environment and installs dependencies on Beluga."""
     c.run("module load python/3.10 && "
-          "python -m venv ./mario_scenes_env && "
+          f"python -m venv {BASE_DIR}/env && "
           "cd mario_scenes_env/lib/python3.10/site-packages && "
           "git clone git@github.com:farama-foundation/stable-retro && "
           "cd ../../../.. && "
@@ -46,7 +46,7 @@ def setup_env_on_beluga(c):
 def setup_mario_dataset(c):
     """Sets up the Mario dataset."""
     command = (
-        "source ./mario_scenes_env/bin/activate && "
+        f"source {BASE_DIR}/env/bin/activate && "
         "mkdir -p data && "
         "cd data && "
         "datalad install -s ria+ssh://elm.criugm.qc.ca/data/neuromod/ria-sequoia#~cneuromod.mario.raw@events mario && " #"datalad install git@github.com:courtois-neuromod/mario && "# get stimuli through submodule

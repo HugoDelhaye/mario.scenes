@@ -24,7 +24,6 @@ def get_pole_position(scenes_info_dict, level_fullname='w1l1'):
 def average_array(arrays):
     return np.mean(np.stack(arrays), axis=0)
 
-
 def main(args):
     if args.data_path is None:
         from pathlib import Path
@@ -42,10 +41,14 @@ def main(args):
     scenes_info_dict = load_scenes_info(format='dict')
     bk2_list = collect_bk2_files(DATA_PATH, subjects=subjects)
 
-    ### Takes mode across all reps for each column
+    ### Determine which levels to process based on the level argument
+    if args.level is not None:
+        level_list = [args.level]
+    else:
+        level_list = np.unique([x[:4] for x in scenes_info_dict.keys()])
+
     chunk_size = 10
 
-    level_list = np.unique([x[:4] for x in scenes_info_dict.keys()])
     for level_todo in level_list:
         print(f'Processing level {level_todo}')
         # First, accumulate columns across all the replays for this level
@@ -120,26 +123,29 @@ def main(args):
                         for scene in scenes_in_level:
                             start = scenes_info_dict[scene]['start']
                             end = scenes_info_dict[scene]['end']
+                            first_col = [x for x in scenes_columns_dict[scene].keys()][0]
                             #### For scenes like w1l2s12 (negative end - start) : true_start = start - 240, true_end = start
                             if x_scroll_pos_r >= start:
-                                if x_scroll_pos_r <= end:
+                                if x_scroll_pos_r <= end+240:
                                     if repetition_variables['level_layout'][i] == scenes_info_dict[scene]['level_layout']:
-                                        if x_scroll_pos == 0:
+                                        if x_scroll_pos == 0 or repetition_variables['level_layout'][i] != most_common_layout:
                                             for col in range(240):
                                                 try:
-                                                    scenes_columns_dict[scene][col].append(frame[:, col, :])
+                                                    scenes_columns_dict[scene][x_scroll_pos+col].append(frame[:, col, :])
                                                 except:
                                                     continue
+                                        
                                         else:
                                             for col in range(chunk_size):
                                                 try:
                                                     scenes_columns_dict[scene][x_scroll_pos_r - col].append(frame[:, 240 - col, :])
                                                 except:
                                                     continue
-
+                frames_shape = replay_frames[0].shape                                
+                del repetition_variables, replay_frames, replay_info, replay_states
 
         number_of_columns = max([x for x in columns_dict.keys()])
-        background_frame = np.zeros((replay_frames[0].shape[0], number_of_columns, replay_frames[0].shape[2]))
+        background_frame = np.zeros((frames_shape[0], number_of_columns, frames_shape[2]))
                 
         for i in columns_dict.keys():
             try:
@@ -153,13 +159,13 @@ def main(args):
         img = Image.fromarray(np.uint8(background_frame))
         os.makedirs(op.join('resources', 'level_backgrounds'), exist_ok=True)
         img.save(op.join('resources', 'level_backgrounds', f'{level_todo}.png'))
+        columns_dict.clear() # clear memory
 
         for scene in scenes_in_level:
             print(f'Processing scene {scene}')
             try:
                 number_of_columns = scenes_info_dict[scene]['end'] - scenes_info_dict[scene]['start']
-                background_frame = np.zeros((replay_frames[0].shape[0], number_of_columns, replay_frames[0].shape[2]))
-
+                background_frame = np.zeros((frames_shape[0], number_of_columns, frames_shape[2]))
                 for i, column_idx in enumerate(scenes_columns_dict[scene].keys()):
                     try:
                         column = average_array(scenes_columns_dict[scene][column_idx])
@@ -175,16 +181,14 @@ def main(args):
             except:
                 print(f'Failed to process scene {scene}')
                 continue
-
-    
+        scenes_columns_dict.clear() # clear memory
+        
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Make images from bk2 files')
     parser.add_argument('-d', '--data_path', type=str, default=None, help='Path to the data directory')
     parser.add_argument('-s', '--subjects', type=str, default='sub-03', help='Subject to process')
+    parser.add_argument('-l', '--level', type=str, default=None, help='Specify level to process (e.g. "w1l1"). If unspecified, all levels will be processed.')
     args = parser.parse_args()
 
     main(args)
-    
-    
-    

@@ -37,6 +37,11 @@ def main(args):
         subjects = None
     else:
         subjects = args.subjects
+    if args.simple:
+        game = 'SuperMarioBrosSimple-Nes'
+    else:
+        game = 'SuperMarioBros-Nes'
+    
     retro.data.Integrations.add_custom_path(op.join(DATA_PATH, 'stimuli'))
     scenes_info_dict = load_scenes_info(format='dict')
     bk2_list = collect_bk2_files(DATA_PATH, subjects=subjects)
@@ -90,7 +95,7 @@ def main(args):
                 print(f'Processing {bk2_file}')
                 repetition_variables, replay_info, replay_frames, replay_states = get_variables_from_replay(
                     op.join(DATA_PATH, bk2_file),
-                    skip_first_step=skip_first_step
+                    skip_first_step=skip_first_step, game=game
                 )
                 
                 # compute long version of x variables
@@ -189,6 +194,8 @@ if __name__ == "__main__":
     parser.add_argument('-d', '--data_path', type=str, default=None, help='Path to the data directory')
     parser.add_argument('-s', '--subjects', type=str, default='sub-03', help='Subject to process')
     parser.add_argument('-l', '--level', type=str, default=None, help='Specify level to process (e.g. "w1l1"). If unspecified, all levels will be processed.')
+    parser.add_argument('--simple', action='store_true', help='Use simple mode (no background image)')
+
     args = parser.parse_args()
 
     main(args)

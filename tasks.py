@@ -72,19 +72,18 @@ def create_clips(c):
     c.run(f"python {BASE_DIR}/src/mario_scenes/create_clips/create_clips.py -d data/mario")
 
 @task
-def collect_resources(c):
-    """Collects resources for the project."""
-    c.run("mkdir -p resources")
-    c.run('wget "https://zenodo.org/records/15110657/files/mario_scenes_manual_annotation.pdf?download=1" -O resources/mario_scenes_manual_annotation.pdf')
-    c.run('wget "https://zenodo.org/records/15110657/files/scenes_mastersheet.json?download=1" -O resources/scenes_mastersheet.json')
-    c.run('wget "https://zenodo.org/records/15110657/files/scenes_mastersheet.csv?download=1" -O resources/scenes_mastersheet.csv')
-    c.run('wget "https://zenodo.org/records/15110657/files/scene_backgrounds.tar.gz?download=1" -O resources/scene_backgrounds.tar.gz')
-    c.run('wget "https://zenodo.org/records/15110657/files/level_backgrounds.tar.gz?download=1" -O resources/level_backgrounds.tar.gz')
-    c.run("tar -xvf resources/scene_backgrounds.tar.gz -C resources/")
-    c.run("tar -xvf resources/level_backgrounds.tar.gz -C resources/")
-    c.run("rm resources/scene_backgrounds.tar.gz")
-    c.run("rm resources/level_backgrounds.tar.gz")
-    
+def get_assets(c):
+    """Downloads and setup assets for the project."""
+    c.run("mkdir -p sourcedata")
+    c.run('wget "https://zenodo.org/records/15110657/files/mario_scenes_manual_annotation.pdf?download=1" -O sourcedata/mario_scenes_manual_annotation.pdf')
+    c.run('wget "https://zenodo.org/records/15110657/files/scenes_mastersheet.json?download=1" -O sourcedata/scenes_mastersheet.json')
+    c.run('wget "https://zenodo.org/records/15110657/files/scenes_mastersheet.csv?download=1" -O sourcedata/scenes_mastersheet.csv')
+    c.run('wget "https://zenodo.org/records/15110657/files/scene_backgrounds.tar.gz?download=1" -O sourcedata/scene_backgrounds.tar.gz')
+    c.run('wget "https://zenodo.org/records/15110657/files/level_backgrounds.tar.gz?download=1" -O sourcedata/level_backgrounds.tar.gz')
+    c.run("tar -xvf sourcedata/scene_backgrounds.tar.gz -C sourcedata/")
+    c.run("tar -xvf sourcedata/level_backgrounds.tar.gz -C sourcedata/")
+    c.run("rm sourcedata/scene_backgrounds.tar.gz")
+    c.run("rm sourcedata/level_backgrounds.tar.gz")
 
 @task
 def full_pipeline(c):

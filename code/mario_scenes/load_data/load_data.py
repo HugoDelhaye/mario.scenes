@@ -4,7 +4,7 @@ import os
 import json
 
 BASE_DIR = op.dirname(op.dirname(op.dirname(op.dirname(op.abspath(__file__)))))
-SCENES_MASTERSHEET = op.join(BASE_DIR, 'resources', 'scenes_mastersheet.csv')
+SCENES_MASTERSHEET = op.join(BASE_DIR, 'sourcedata', 'scenes_info' ,'scenes_mastersheet.csv')
 
 def load_scenes_info(format='df'):
     """

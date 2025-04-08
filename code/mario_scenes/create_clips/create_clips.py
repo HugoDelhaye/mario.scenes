@@ -247,9 +247,9 @@ def main(args):
     # Load scenes
     scenes_info_dict = load_scenes_info(format='dict')
 
-    # Setup derivatives folder
+    # Setup output folder
     if args.output is None:
-        OUTPUT_FOLDER = op.join(DATA_PATH, "derivatives")
+        OUTPUT_FOLDER = op.join(DATA_PATH, "outputdata")
     else:
         OUTPUT_FOLDER = op.abspath(args.output)
     os.makedirs(OUTPUT_FOLDER, exist_ok=True)
@@ -338,7 +338,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-d",
         "--datapath",
-        default='.',
+        default='sourcedata/mario',
         type=str,
         help="Data path to look for events.tsv and .bk2 files. Should be the root of the Mario dataset.",
     )

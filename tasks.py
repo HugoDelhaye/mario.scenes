@@ -9,12 +9,12 @@ BASE_DIR = op.dirname(op.abspath(__file__))
 @task
 def dimensionality_reduction(c):
     """Cleans the raw data and saves the cleaned version."""
-    c.run(f"python {BASE_DIR}/src/mario_scenes/scenes_analysis/dimensionality_reduction.py")
+    c.run(f"python {BASE_DIR}/code/mario_scenes/scenes_analysis/dimensionality_reduction.py")
 
 @task
 def cluster_scenes(c):
     """Hierarchical clustering onrun_analysis scenes based on annotations."""
-    c.run(f"python {BASE_DIR}/src/mario_scenes/scenes_analysis/cluster_scenes.py --n_clusters $(seq 5 30)")
+    c.run(f"python {BASE_DIR}/code/mario_scenes/scenes_analysis/cluster_scenes.py --n_clusters $(seq 5 30)")
 
 
 # ===============================
@@ -47,8 +47,7 @@ def setup_mario_dataset(c):
     """Sets up the Mario dataset."""
     command = (
         f"source {BASE_DIR}/env/bin/activate && "
-        "mkdir -p data && "
-        "cd data && "
+        "cd sourcedata && "
         "datalad install -s ria+ssh://elm.criugm.qc.ca/data/neuromod/ria-sequoia#~cneuromod.mario.raw@events mario && " #"datalad install git@github.com:courtois-neuromod/mario && "# get stimuli through submodule
         "cd mario && "
         "git checkout events && "
@@ -74,10 +73,10 @@ def create_clips(c):
 @task
 def get_assets(c):
     """Downloads and setup assets for the project."""
-    c.run("mkdir -p sourcedata")
-    c.run('wget "https://zenodo.org/records/15110657/files/mario_scenes_manual_annotation.pdf?download=1" -O sourcedata/mario_scenes_manual_annotation.pdf')
-    c.run('wget "https://zenodo.org/records/15110657/files/scenes_mastersheet.json?download=1" -O sourcedata/scenes_mastersheet.json')
-    c.run('wget "https://zenodo.org/records/15110657/files/scenes_mastersheet.csv?download=1" -O sourcedata/scenes_mastersheet.csv')
+    c.run("mkdir -p sourcedata/scenes_info")
+    c.run('wget "https://zenodo.org/records/15110657/files/mario_scenes_manual_annotation.pdf?download=1" -O sourcedata/scenes_info/mario_scenes_manual_annotation.pdf')
+    c.run('wget "https://zenodo.org/records/15110657/files/scenes_mastersheet.json?download=1" -O sourcedata/scenes_info/scenes_mastersheet.json')
+    c.run('wget "https://zenodo.org/records/15110657/files/scenes_mastersheet.csv?download=1" -O sourcedata/scenes_info/scenes_mastersheet.csv')
     c.run('wget "https://zenodo.org/records/15110657/files/scene_backgrounds.tar.gz?download=1" -O sourcedata/scene_backgrounds.tar.gz')
     c.run('wget "https://zenodo.org/records/15110657/files/level_backgrounds.tar.gz?download=1" -O sourcedata/level_backgrounds.tar.gz')
     c.run("tar -xvf sourcedata/scene_backgrounds.tar.gz -C sourcedata/")

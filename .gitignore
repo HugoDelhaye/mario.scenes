@@ -1,6 +1,6 @@
 # Ignore some folders
-resources/
-outputs/
+sourcedata/
+outputdata/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -71,7 +71,7 @@ def create_clips(c):
     c.run(f"python {BASE_DIR}/src/mario_scenes/create_clips/create_clips.py -d data/mario")
 
 @task
-def get_assets(c):
+def get_scenes_data(c):
     """Downloads and setup assets for the project."""
     c.run("mkdir -p sourcedata/scenes_info")
     c.run('wget "https://zenodo.org/records/15110657/files/mario_scenes_manual_annotation.pdf?download=1" -O sourcedata/scenes_info/mario_scenes_manual_annotation.pdf')

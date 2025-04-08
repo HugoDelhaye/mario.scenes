@@ -16,9 +16,9 @@ git clone git@github.com:courtois-neuromod/mario.scenes
 ### First time use
 - Create an env and install the package : 
 ```
-cd mario_scenes
-python -m venv mario_scenes_env
-source mario_scenes_env/bin/activate
+cd mario.scenes
+python -m venv env
+source env/bin/activate
 pip install invoke
 invoke setup-env
 ```
@@ -31,7 +31,7 @@ invoke setup-env-on-beluga
 
 - Download resources (`scenes_mastersheet.tsv` in particular): 
 ```
-invoke collect-resources
+invoke get-scenes-data
 ```
 
 - Run analysis : 

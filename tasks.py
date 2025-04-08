@@ -48,7 +48,7 @@ def setup_mario_dataset(c):
     command = (
         f"source {BASE_DIR}/env/bin/activate && "
         "cd sourcedata && "
-        "datalad install -s ria+ssh://elm.criugm.qc.ca/data/neuromod/ria-sequoia#~cneuromod.mario.raw@events mario && " #"datalad install git@github.com:courtois-neuromod/mario && "# get stimuli through submodule
+        "datalad install git@github.com:courtois-neuromod/mario && "# get stimuli through submodule #"datalad install -s ria+ssh://elm.criugm.qc.ca/data/neuromod/ria-sequoia#~cneuromod.mario.raw@events mario && "
         "cd mario && "
         "git checkout events && "
         "datalad get */*/*/*.bk2 && "

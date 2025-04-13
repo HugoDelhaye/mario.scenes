@@ -135,10 +135,8 @@ def process_bk2_file(bk2_info, args, scenes_info_dict, DATA_PATH, OUTPUT_FOLDER,
                 sub_folder = op.join(deriv_folder, f"sub-{sub}")
                 ses_folder = op.join(sub_folder, f"ses-{ses}")
                 beh_folder = op.join(ses_folder, 'beh')
-                clips_folder = op.join(beh_folder, 'clips')
-                savestates_folder = op.join(beh_folder, 'savestates')
-                os.makedirs(clips_folder, exist_ok=True)
-                os.makedirs(savestates_folder, exist_ok=True)
+
+
 
                 entities = (
                     f"sub-{sub}_ses-{ses}_run-{run}_level-{repetition_variables['level']}_"
@@ -146,12 +144,13 @@ def process_bk2_file(bk2_info, args, scenes_info_dict, DATA_PATH, OUTPUT_FOLDER,
                 )
 
                 # Prepare output filenames
-                gif_fname       = op.join(clips_folder,      f"{entities}_beh.gif")
-                mp4_fname       = op.join(clips_folder,      f"{entities}_beh.mp4")
-                webp_fname      = op.join(clips_folder,      f"{entities}_beh.webp")
-                savestate_fname = op.join(savestates_folder, f"{entities}_beh.state")
-                ramdump_fname   = savestate_fname.replace(".state", "_ramdump.npz")
-                json_fname      = op.join(clips_folder,      f"{entities}_beh.json")
+                gif_fname       = op.join(beh_folder, 'videos', f"{entities}.gif")
+                mp4_fname       = op.join(beh_folder, 'videos', f"{entities}.mp4")
+                webp_fname      = op.join(beh_folder, 'videos', f"{entities}.webp")
+                savestate_fname = op.join(beh_folder, 'savestates', f"{entities}.state")
+                ramdump_fname   = op.join(beh_folder, 'ramdumps', f'{entities}.npz')
+                json_fname      = op.join(beh_folder, 'infos', f"{entities}.json")
+                variables_fname = op.join(beh_folder, 'variables', f"{entities}.pkl")
 
                 metadata = {
                     'Subject': sub,
@@ -163,7 +162,7 @@ def process_bk2_file(bk2_info, args, scenes_info_dict, DATA_PATH, OUTPUT_FOLDER,
                     'StartFrame': start_idx,
                     'EndFrame': end_idx,
                     'TotalFrames': n_frames_total,
-                    'bk2_filepath': bk2_file,
+                    'Bk2Filepath': bk2_file,
                     'GameName': args.game_name,
                 }
 
@@ -173,7 +172,8 @@ def process_bk2_file(bk2_info, args, scenes_info_dict, DATA_PATH, OUTPUT_FOLDER,
 
                 enriched_metadata = merge_metadata(metadata, scene_sidecar)
 
-                with open(json_fname, 'w') as json_file:
+                os.makedirs(os.path.dirname(json_fname), exist_ok=True)
+                with open(json_fname, 'w') as json_file:    
                     json.dump(enriched_metadata, json_file, indent=4)
 
                 # If nothing is needed for this clip, skip it.
@@ -183,8 +183,9 @@ def process_bk2_file(bk2_info, args, scenes_info_dict, DATA_PATH, OUTPUT_FOLDER,
                     continue
 
                 try:
-                    # Generate GIF
+                    # Generate files
                     if args.save_videos:
+                        os.makedirs(os.path.dirname(gif_fname), exist_ok=True)
                         if args.video_format == 'gif':
                             make_gif(selected_frames, gif_fname)
                         elif args.video_format == 'mp4':
@@ -193,10 +194,17 @@ def process_bk2_file(bk2_info, args, scenes_info_dict, DATA_PATH, OUTPUT_FOLDER,
                             make_webp(selected_frames, webp_fname)
 
                     if args.save_states:
+                        os.makedirs(os.path.dirname(savestate_fname), exist_ok=True)
                         with gzip.open(savestate_fname, "wb") as fh:
                             fh.write(replay_states[start_idx])
                     if args.save_ramdumps:
+                        os.makedirs(os.path.dirname(ramdump_fname), exist_ok=True)
                         np.savez_compressed(ramdump_fname, replay_states[start_idx:end_idx])
+                    if args.save_variables:
+                        os.makedirs(os.path.dirname(variables_fname), exist_ok=True)
+                        with open(variables_fname, 'wb') as f:
+                            pickle.dump(f, scene_variables)
+
 
 
                     processing_stats['clips_processed'] += 1

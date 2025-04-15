@@ -164,14 +164,28 @@ def process_bk2_file(bk2_info, args, scenes_info_dict, DATA_PATH, OUTPUT_FOLDER,
                     'TotalFrames': n_frames_total,
                     'Bk2Filepath': bk2_file,
                     'GameName': args.game_name,
-                    'LevelFullName': bk2_file.split("_")[-3].split('-')[1],
+                    'LevelFullName': bk2_file.split("_")[-2].split('-')[1],
                 }
+
 
                 scene_variables = prune_variables(repetition_variables, start_idx, end_idx)
 
                 scene_sidecar = create_sidecar_dict(scene_variables)
 
+                if args.replays_path is not None:
+                    replay_path = op.join(args.replays_path, f"sub-{sub}", f"ses-{ses}", "beh", "infos", bk2_file.split('/')[-1].replace(".bk2", ".json"))
+                    if os.path.exists(replay_path):
+                        with open(replay_path, 'r') as replay_file:
+                            replay_sidecar = json.load(replay_file)
+                            scene_sidecar = merge_metadata(scene_sidecar, replay_sidecar)
+                    else:
+                        logging.warning(f"Replay file not found: {replay_path}")
+                else:
+                    logging.warning(f"Replay path not provided, skipping repetition sidecar.")
+
                 enriched_metadata = merge_metadata(metadata, scene_sidecar)
+
+
 
                 os.makedirs(os.path.dirname(json_fname), exist_ok=True)
                 with open(json_fname, 'w') as json_file:    
@@ -203,7 +217,7 @@ def process_bk2_file(bk2_info, args, scenes_info_dict, DATA_PATH, OUTPUT_FOLDER,
                         np.savez_compressed(ramdump_fname, replay_states[start_idx:end_idx])
                     if args.save_variables:
                         os.makedirs(os.path.dirname(variables_fname), exist_ok=True)
-                        with open(variables_fname, 'w') as f:  # Changed 'wb' to 'w' for text mode
+                        with open(variables_fname, 'wb') as f:
                             json.dump(scene_variables, f)
 
 
@@ -365,7 +379,7 @@ if __name__ == "__main__":
         help="Path to the stimuli folder containing the game ROMs. Defaults to <datapath>/stimuli if not specified.",
     )
     parser.add_argument(
-        "-n",
+        "-nj",
         "--n_jobs",
         default=-1,
         type=int,
@@ -413,6 +427,11 @@ if __name__ == "__main__":
         '--video_format', '-vf', default='mp4',
         choices=['gif', 'mp4', 'webp'],
         help='Video format to save (default: mp4).'
+    )
+    parser.add_argument(
+        '--replays_path', '-rp', default=None,
+        type=str,
+        help='Path to the replay files (bk2) to extract metadata from.'
     )
 
     args = parser.parse_args()

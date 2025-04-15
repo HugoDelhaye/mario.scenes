@@ -97,9 +97,10 @@ def load_clips_sidecars(clips_dir):
     sidecars_data = []
     for root, folder, files in sorted(os.walk(clips_dir)):
         for file in files:
-            if file.endswith(".json") and "beh" in root:
+            if file.endswith(".json") and "infos" in root:
                 sidecars_files = op.join(root, file)
                 with open(sidecars_files) as f:
                     sidecars_data.append(json.load(f))
     sidecars_df = pd.DataFrame(sidecars_data)
     return sidecars_df
+

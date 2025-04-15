@@ -150,7 +150,7 @@ def process_bk2_file(bk2_info, args, scenes_info_dict, DATA_PATH, OUTPUT_FOLDER,
                 savestate_fname = op.join(beh_folder, 'savestates', f"{entities}.state")
                 ramdump_fname   = op.join(beh_folder, 'ramdumps', f'{entities}.npz')
                 json_fname      = op.join(beh_folder, 'infos', f"{entities}.json")
-                variables_fname = op.join(beh_folder, 'variables', f"{entities}.pkl")
+                variables_fname = op.join(beh_folder, 'variables', f"{entities}.json")
 
                 metadata = {
                     'Subject': sub,
@@ -202,9 +202,8 @@ def process_bk2_file(bk2_info, args, scenes_info_dict, DATA_PATH, OUTPUT_FOLDER,
                         np.savez_compressed(ramdump_fname, replay_states[start_idx:end_idx])
                     if args.save_variables:
                         os.makedirs(os.path.dirname(variables_fname), exist_ok=True)
-                        with open(variables_fname, 'wb') as f:
-                            pickle.dump(f, scene_variables)
-
+                        with open(variables_fname, 'w') as f:  # Changed 'wb' to 'w' for text mode
+                            json.dump(scene_variables, f)
 
 
                     processing_stats['clips_processed'] += 1

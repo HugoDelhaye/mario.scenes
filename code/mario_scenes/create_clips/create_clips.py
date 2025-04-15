@@ -164,6 +164,7 @@ def process_bk2_file(bk2_info, args, scenes_info_dict, DATA_PATH, OUTPUT_FOLDER,
                     'TotalFrames': n_frames_total,
                     'Bk2Filepath': bk2_file,
                     'GameName': args.game_name,
+                    'LevelFullName': bk2_file.split("_")[-3].split('-')[1],
                 }
 
                 scene_variables = prune_variables(repetition_variables, start_idx, end_idx)

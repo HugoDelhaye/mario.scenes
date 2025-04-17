@@ -2,9 +2,11 @@ import pandas as pd
 import os.path as op
 import os
 import json
+from PIL import Image
 
 BASE_DIR = op.dirname(op.dirname(op.dirname(op.dirname(op.abspath(__file__)))))
-SCENES_MASTERSHEET = op.join(BASE_DIR, 'sourcedata', 'scenes_info' ,'scenes_mastersheet.csv')
+SOURCEDATA = op.join(BASE_DIR, 'sourcedata')
+SCENES_MASTERSHEET = op.join(SOURCEDATA, 'scenes_info' ,'scenes_mastersheet.csv')
 
 def load_scenes_info(format='df'):
     """
@@ -44,6 +46,48 @@ def load_scenes_info(format='df'):
     else:
         raise ValueError('format must be either "df" or "dict"')
     
+
+def load_background_images(level='level'):
+    """
+    Load background images from the specified folder based on the level type.
+    
+    Parameters
+    ----------
+    sourcedata : str
+        Path to the source data directory.
+    level : str, optional
+        Type of background to load, either 'level' or 'scene'.
+        Default is 'level'.
+    
+    Returns
+    -------
+    list
+        List of PIL Image objects loaded from PNG files in the appropriate background folder.
+        
+    Notes
+    -----
+    Images are loaded from either 'level_backgrounds' or 'scene_backgrounds' 
+    subdirectories based on the level parameter.
+    """
+    # load images
+    if level == 'level':
+        folder = 'level_backgrounds'
+    if level == 'scene':
+        folder = 'scene_backgrounds'
+
+    backgrounds = []
+    backgrounds_names = []
+    for img in sorted(os.listdir(os.path.join(SOURCEDATA, folder))):
+        if img.endswith('.png'):
+            backgrounds.append(Image.open(os.path.join(SOURCEDATA, folder, img)))
+            backgrounds_names.append(img.split('.')[0])
+    # create dict
+    backgrounds_dict = {}
+    for i, name in enumerate(backgrounds_names):
+        backgrounds_dict[name] = backgrounds[i]
+    return backgrounds_dict
+
+
 
 def load_annotation_data():
     """

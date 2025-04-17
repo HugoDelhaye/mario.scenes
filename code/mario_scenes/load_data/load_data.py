@@ -82,31 +82,4 @@ def load_reduced_data(method='umap'):
     return pd.read_csv(fname, index_col=0)
 
 
-def load_clips_data(clips_dir, type='metadata'):
-    """
-    Load the sidecar files for the clips in the specified directory.
-
-    Args:
-        clips_dir (str): The directory containing the clips and their sidecar files.
-        type (str): The type of data to load. Default is 'metadata', can also be 'variables'.
-
-    Returns:
-        pandas.DataFrame: A dataframe where the rows are the individual clips and the columns are the sidecar data.
-    """
-
-    """Load sidecar files from a replay directory."""
-    sidecars_data = []
-    for root, folder, files in sorted(os.walk(clips_dir)):
-        for file in files:
-            if file.endswith(".json"):
-                if type == 'metadata' and "infos" in root:
-                    sidecars_files = op.join(root, file)
-                    with open(sidecars_files) as f:
-                        sidecars_data.append(json.load(f))
-                elif type == 'variables' and "variables" in root:
-                    sidecars_files = op.join(root, file)
-                    with open(sidecars_files) as f:
-                        sidecars_data.append(json.load(f))
-    sidecars_df = pd.DataFrame(sidecars_data)
-    return sidecars_df
 

@@ -162,9 +162,10 @@ def process_bk2_file(bk2_info, args, scenes_info_dict, DATA_PATH, OUTPUT_FOLDER,
                     'StartFrame': start_idx,
                     'EndFrame': end_idx,
                     'TotalFrames': n_frames_total,
-                    'Bk2Filepath': bk2_file,
+                    'Bk2File': entities,
                     'GameName': args.game_name,
                     'LevelFullName': bk2_file.split("_")[-2].split('-')[1],
+                    'SceneFullName': current_scene,
                 }
 
 

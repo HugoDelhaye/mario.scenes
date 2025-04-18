@@ -33,7 +33,7 @@ def prune_variables(variables, start_idx, end_idx):
     pruned_variables = {}
     for key, value in variables.items():
         if isinstance(value, (list, np.ndarray)):
-            pruned_variables[key] = value[start_idx : end_idx + 1]
+            pruned_variables[key] = value[start_idx:end_idx]
         else:
             pruned_variables[key] = value
     return pruned_variables

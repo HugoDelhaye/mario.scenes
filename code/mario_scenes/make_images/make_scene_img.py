@@ -8,7 +8,6 @@ from mario_replays.utils import get_variables_from_replay
 from mario_replays.load_data import collect_bk2_files
 import os.path as op
 from mario_scenes.load_data import load_scenes_info
-from mario_replays.load_data import load_replay_sidecars
 from PIL import Image
 import os
 import argparse
@@ -25,11 +24,11 @@ def average_array(arrays):
     return np.mean(np.stack(arrays), axis=0)
 
 def main(args):
+    script_path = Path(__file__).resolve()
+    repo_dir = script_path.parents[3]
     if args.data_path is None:
         from pathlib import Path
-        script_path = Path(__file__).resolve()
-        repo_dir = script_path.parents[3]
-        DATA_PATH = op.join(repo_dir, 'data', 'mario')
+        DATA_PATH = op.join(repo_dir, 'sourcedata', 'mario')
         print('Datapath not specified, using default path:', DATA_PATH)
     else:
         DATA_PATH = args.data_path
@@ -45,6 +44,7 @@ def main(args):
     retro.data.Integrations.add_custom_path(op.join(DATA_PATH, 'stimuli'))
     scenes_info_dict = load_scenes_info(format='dict')
     bk2_list = collect_bk2_files(DATA_PATH, subjects=subjects)
+    print(f'Found {len(bk2_list)} bk2 files')
 
     ### Determine which levels to process based on the level argument
     if args.level is not None:
@@ -97,7 +97,8 @@ def main(args):
                     op.join(DATA_PATH, bk2_file),
                     skip_first_step=skip_first_step, game=game
                 )
-                
+                frames_shape = replay_frames[0].shape
+
                 # compute long version of x variables
                 repetition_variables['player_x_pos'] = [
                     hi * 256 + lo for hi, lo in zip(repetition_variables['player_x_posHi'], repetition_variables['player_x_posLo'])
@@ -146,7 +147,7 @@ def main(args):
                                                     scenes_columns_dict[scene][x_scroll_pos_r - col].append(frame[:, 240 - col, :])
                                                 except:
                                                     continue
-                frames_shape = replay_frames[0].shape                                
+                                                
                 del repetition_variables, replay_frames, replay_info, replay_states
 
         number_of_columns = max([x for x in columns_dict.keys()])
@@ -162,7 +163,7 @@ def main(args):
                 continue
         
         img = Image.fromarray(np.uint8(background_frame))
-        os.makedirs(op.join('resources', 'level_backgrounds'), exist_ok=True)
+        os.makedirs(op.join('..', 'level_backgrounds'), exist_ok=True)
         img.save(op.join('resources', 'level_backgrounds', f'{level_todo}.png'))
         columns_dict.clear() # clear memory
 
@@ -181,8 +182,8 @@ def main(args):
                         continue
 
                 img = Image.fromarray(np.uint8(background_frame))
-                os.makedirs(op.join('resources', 'scene_backgrounds'), exist_ok=True)
-                img.save(op.join('resources', 'scene_backgrounds', f'{scene}.png'))
+                os.makedirs(op.join(repo_dir, 'sourcedata', 'scene_backgrounds'), exist_ok=True)
+                img.save(op.join(repo_dir, 'sourcedata', 'scene_backgrounds', f'{scene}.png'))
             except:
                 print(f'Failed to process scene {scene}')
                 continue

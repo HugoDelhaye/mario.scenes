@@ -77,11 +77,11 @@ def create_clips(c):
 def get_scenes_data(c):
     """Downloads and setup assets for the project."""
     c.run("mkdir -p sourcedata/scenes_info")
-    c.run('wget "https://zenodo.org/records/15110657/files/mario_scenes_manual_annotation.pdf?download=1" -O sourcedata/scenes_info/mario_scenes_manual_annotation.pdf')
-    c.run('wget "https://zenodo.org/records/15110657/files/scenes_mastersheet.json?download=1" -O sourcedata/scenes_info/scenes_mastersheet.json')
-    c.run('wget "https://zenodo.org/records/15110657/files/scenes_mastersheet.csv?download=1" -O sourcedata/scenes_info/scenes_mastersheet.csv')
-    c.run('wget "https://zenodo.org/records/15110657/files/scene_backgrounds.tar.gz?download=1" -O sourcedata/scene_backgrounds.tar.gz')
-    c.run('wget "https://zenodo.org/records/15110657/files/level_backgrounds.tar.gz?download=1" -O sourcedata/level_backgrounds.tar.gz')
+    c.run('wget "https://zenodo.org/records/15586709/files/mario_scenes_manual_annotation.pdf?download=1" -O sourcedata/scenes_info/mario_scenes_manual_annotation.pdf')
+    c.run('wget "https://zenodo.org/records/15586709/files/scenes_mastersheet.json?download=1" -O sourcedata/scenes_info/scenes_mastersheet.json')
+    c.run('wget "https://zenodo.org/records/15586709/files/scenes_mastersheet.csv?download=1" -O sourcedata/scenes_info/scenes_mastersheet.csv')
+    c.run('wget "https://zenodo.org/records/15586709/files/scene_backgrounds.tar.gz?download=1" -O sourcedata/scene_backgrounds.tar.gz')
+    c.run('wget "https://zenodo.org/records/15586709/files/level_backgrounds.tar.gz?download=1" -O sourcedata/level_backgrounds.tar.gz')
     c.run("tar -xvf sourcedata/scene_backgrounds.tar.gz -C sourcedata/")
     c.run("tar -xvf sourcedata/level_backgrounds.tar.gz -C sourcedata/")
     c.run("rm sourcedata/scene_backgrounds.tar.gz")

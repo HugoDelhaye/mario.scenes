@@ -11,6 +11,7 @@ from mario_scenes.load_data import load_scenes_info
 from PIL import Image
 import os
 import argparse
+from pathlib import Path
 
 def get_pole_position(scenes_info_dict, level_fullname='w1l1'):
     scene_end_positions = []
@@ -27,7 +28,6 @@ def main(args):
     script_path = Path(__file__).resolve()
     repo_dir = script_path.parents[3]
     if args.data_path is None:
-        from pathlib import Path
         DATA_PATH = op.join(repo_dir, 'sourcedata', 'mario')
         print('Datapath not specified, using default path:', DATA_PATH)
     else:

@@ -48,9 +48,69 @@ def merge_metadata(additional_fields, base_dict):
             base_dict[key] = value
     return base_dict
 
+def get_rep_order(ses, run, bk2_idx):
+    """
+    Generate a string representing the repetition order based on subject, session, run, and bk2 index.
+    """
+    return f"{str(ses).zfill(3)}{str(run).zfill(2)}{str(bk2_idx).zfill(2)}"
+
+def cut_scene_clips(repetition_variables, rep_order_string, scene_bounds):
+
+    bk2_file = repetition_variables["filename"]
+
+    clips_found = {}
+    repetition_variables["player_x_pos"] = [
+        hi * 256 + lo
+        for hi, lo in zip(
+            repetition_variables["player_x_posHi"],
+            repetition_variables["player_x_posLo"],
+        )
+    ]
+    n_frames_total = len(repetition_variables["player_x_pos"])
+
+    scene_start = scene_bounds["start"]
+    scene_end = scene_bounds["end"]
+    level_layout = scene_bounds["level_layout"]
+
+    start_found = False
+    for frame_idx in range(1, n_frames_total):
+        if not start_found:
+            if (
+                repetition_variables["player_x_pos"][frame_idx] >= scene_start
+                and repetition_variables["player_x_pos"][frame_idx - 1]
+                < scene_start
+                and repetition_variables["player_x_pos"][frame_idx] < scene_end
+                and repetition_variables["level_layout"][frame_idx]
+                == level_layout
+            ):
+                start_idx = frame_idx
+                start_found = True
+        else:
+            if (
+                repetition_variables["player_x_pos"][frame_idx] >= scene_end
+                and repetition_variables["player_x_pos"][frame_idx - 1]
+                < scene_end
+            ) or (
+                repetition_variables["lives"][frame_idx]
+                - repetition_variables["lives"][frame_idx - 1]
+                < 0
+            ):
+                end_idx = frame_idx
+                start_found = False
+                clip_code = f"{rep_order_string}{str(start_idx).zfill(7)}"
+                clips_found[clip_code] = (start_idx, end_idx)
+            elif (
+                repetition_variables["player_x_pos"][frame_idx] >= scene_start
+                and repetition_variables["player_x_pos"][frame_idx - 1]
+                < scene_start
+            ):
+                start_idx = frame_idx
+
+    return clips_found
+
 
 def process_bk2_file(
-    bk2_info, args, scenes_info_dict, DATA_PATH, OUTPUT_FOLDER, STIMULI_PATH
+    bk2_info, args, DATA_PATH, OUTPUT_FOLDER, STIMULI_PATH
 ):
     """
     Process a single bk2 file to extract clips, saving only the requested file types:
@@ -72,6 +132,8 @@ def process_bk2_file(
         "errors": 0,
     }
 
+    scenes_info_dict = load_scenes_info(format="dict")
+
     try:
         bk2_file = bk2_info["bk2_file"]
         bk2_idx = bk2_info["bk2_idx"]
@@ -81,17 +143,7 @@ def process_bk2_file(
         skip_first_step = bk2_idx == 0
 
         logging.info(f"Processing bk2 file: {bk2_file}")
-        rep_order_string = (
-            f"{str(ses).zfill(3)}{str(run).zfill(2)}{str(bk2_idx).zfill(2)}"
-        )
-        curr_level = op.basename(bk2_file).split("_")[-2].split("-")[1]
-
-        # If the level doesn't match anything in the scenes dictionary, no scenes to extract
-        if not any(curr_level in x for x in scenes_info_dict.keys()):
-            logging.info(
-                f"No matching scenes for level {curr_level} in {bk2_file}, skipping."
-            )
-            return error_logs, processing_stats
+        rep_order_string = get_rep_order(ses, run, bk2_idx)
 
         # Run replay
         repetition_variables, replay_info, frames_list, replay_states = (
@@ -102,72 +154,32 @@ def process_bk2_file(
                 inttype=retro.data.Integrations.CUSTOM_ONLY,
             )
         )
-        n_frames_total = len(frames_list)
-        repetition_variables["player_x_pos"] = [
-            hi * 256 + lo
-            for hi, lo in zip(
-                repetition_variables["player_x_posHi"],
-                repetition_variables["player_x_posLo"],
-            )
-        ]
 
+        curr_level = op.basename(bk2_file).split("_")[-2].split("-")[1]
         scenes_in_current_level = [
             x for x in scenes_info_dict.keys() if curr_level in x
         ]
-        for current_scene in tqdm(
-            scenes_in_current_level,
-            desc=f"Processing scenes in {bk2_file}",
-            leave=False,
-        ):
-            scenes_info_found = []
-            scene_start = scenes_info_dict[current_scene]["start"]
-            scene_end = scenes_info_dict[current_scene]["end"]
-            level_layout = scenes_info_dict[current_scene]["level_layout"]
+        for current_scene in scenes_in_current_level:
 
-            start_found = False
-            for frame_idx in range(1, n_frames_total):
-                if not start_found:
-                    if (
-                        repetition_variables["player_x_pos"][frame_idx] >= scene_start
-                        and repetition_variables["player_x_pos"][frame_idx - 1]
-                        < scene_start
-                        and repetition_variables["player_x_pos"][frame_idx] < scene_end
-                        and repetition_variables["level_layout"][frame_idx]
-                        == level_layout
-                    ):
-                        start_idx = frame_idx
-                        start_found = True
-                else:
-                    if (
-                        repetition_variables["player_x_pos"][frame_idx] >= scene_end
-                        and repetition_variables["player_x_pos"][frame_idx - 1]
-                        < scene_end
-                    ) or (
-                        repetition_variables["lives"][frame_idx]
-                        - repetition_variables["lives"][frame_idx - 1]
-                        < 0
-                    ):
-                        end_idx = frame_idx
-                        start_found = False
-                        scenes_info_found.append([start_idx, end_idx])
-                    elif (
-                        repetition_variables["player_x_pos"][frame_idx] >= scene_start
-                        and repetition_variables["player_x_pos"][frame_idx - 1]
-                        < scene_start
-                    ):
-                        start_idx = frame_idx
+            scene_bounds = {'start': scenes_info_dict[current_scene]['start'],
+                            'end': scenes_info_dict[current_scene]['end'],
+                            'level_layout': scenes_info_dict[current_scene]['level_layout']}
 
-            for pattern in scenes_info_found:
-                start_idx, end_idx = pattern
+            clips_found = cut_scene_clips(
+                repetition_variables,
+                rep_order_string,
+                scene_bounds,
+            )
+
+            for clip_code in clips_found:
+                start_idx, end_idx = clips_found[clip_code]
 
                 selected_frames = frames_list[start_idx:end_idx]
 
-                clip_code = f"{rep_order_string}{str(start_idx).zfill(7)}"
                 assert len(clip_code) == 14, f"Invalid clip code: {clip_code}"
 
                 # Construct BIDS-compliant paths
-                deriv_folder = op.join(OUTPUT_FOLDER, args.output_name)
-                sub_folder = op.join(deriv_folder, f"sub-{sub}")
+                sub_folder = op.join(OUTPUT_FOLDER, f"sub-{sub}")
                 ses_folder = op.join(sub_folder, f"ses-{ses}")
                 beh_folder = op.join(ses_folder, "beh")
 
@@ -194,7 +206,7 @@ def process_bk2_file(
                     "ClipCode": clip_code,
                     "StartFrame": start_idx,
                     "EndFrame": end_idx,
-                    "TotalFrames": n_frames_total,
+                    "TotalFrames": len(repetition_variables['score']),
                     "Bk2File": entities,
                     "GameName": args.game_name,
                     "LevelFullName": bk2_file.split("_")[-2].split("-")[1],
@@ -316,10 +328,7 @@ def main(args):
     scenes_info_dict = load_scenes_info(format="dict")
 
     # Setup output folder
-    if args.output is None:
-        OUTPUT_FOLDER = op.join(DATA_PATH, "outputdata")
-    else:
-        OUTPUT_FOLDER = op.abspath(args.output)
+    OUTPUT_FOLDER = op.join(op.abspath(args.output), args.output_name)
     os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 
     # Integrate game
@@ -349,7 +358,7 @@ def main(args):
     with tqdm_joblib(tqdm(desc="Processing bk2 files", total=total_bk2_files)):
         results = Parallel(n_jobs=n_jobs)(
             delayed(process_bk2_file)(
-                bk2_info, args, scenes_info_dict, DATA_PATH, OUTPUT_FOLDER, STIMULI_PATH
+                bk2_info, args, DATA_PATH, OUTPUT_FOLDER, STIMULI_PATH
             )
             for bk2_info in bk2_files_info
         )
@@ -388,13 +397,13 @@ def main(args):
         "SourceDatasets": [{"URL": "https://github.com/courtois-neuromod/mario/"}],
         "License": "CC0",
     }
-    deriv_folder = op.join(OUTPUT_FOLDER, args.output_name)
-    os.makedirs(deriv_folder, exist_ok=True)
-    with open(op.join(deriv_folder, "dataset_description.json"), "w") as f:
+
+    os.makedirs(OUTPUT_FOLDER, exist_ok=True)
+    with open(op.join(OUTPUT_FOLDER, "dataset_description.json"), "w") as f:
         json.dump(dataset_description, f, indent=4)
 
     # Write error logs to a file
-    log_file = op.join(deriv_folder, "processing_log.txt")
+    log_file = op.join(OUTPUT_FOLDER, "processing_log.txt")
     with open(log_file, "w") as f:
         f.write("Processing Log\n")
         f.write("=================\n")
@@ -427,7 +436,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-o",
         "--output",
-        default=None,
+        default='outputdata/',
         type=str,
         help="Path to the derivatives folder, where the outputs will be saved.",
     )

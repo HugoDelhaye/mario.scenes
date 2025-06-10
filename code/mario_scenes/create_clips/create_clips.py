@@ -110,7 +110,7 @@ def cut_scene_clips(repetition_variables, rep_order_string, scene_bounds):
 
 
 def process_bk2_file(
-    bk2_info, args, DATA_PATH, OUTPUT_FOLDER, STIMULI_PATH
+    bk2_info, args, scenes_info_dict, DATA_PATH, OUTPUT_FOLDER, STIMULI_PATH
 ):
     """
     Process a single bk2 file to extract clips, saving only the requested file types:
@@ -131,8 +131,6 @@ def process_bk2_file(
         "clips_skipped": 0,
         "errors": 0,
     }
-
-    scenes_info_dict = load_scenes_info(format="dict")
 
     try:
         bk2_file = bk2_info["bk2_file"]
@@ -358,7 +356,7 @@ def main(args):
     with tqdm_joblib(tqdm(desc="Processing bk2 files", total=total_bk2_files)):
         results = Parallel(n_jobs=n_jobs)(
             delayed(process_bk2_file)(
-                bk2_info, args, DATA_PATH, OUTPUT_FOLDER, STIMULI_PATH
+                bk2_info, args, scenes_info_dict, DATA_PATH, OUTPUT_FOLDER, STIMULI_PATH
             )
             for bk2_info in bk2_files_info
         )

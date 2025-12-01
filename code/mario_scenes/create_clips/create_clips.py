@@ -1,3 +1,20 @@
+"""
+Scene Clip Extraction Module
+
+This module processes Super Mario Bros replay files (.bk2) to identify and extract
+individual scene clips based on player position and scene boundaries. It supports
+parallel processing and multiple output formats.
+
+Main Functions:
+    - main(): Entry point for clip extraction pipeline
+    - process_bk2_file(): Process a single replay file to extract scene clips
+    - cut_scene_clips(): Identify scene boundaries within a replay
+
+Output:
+    BIDS-compliant directory structure with video clips, savestates, ramdumps,
+    and JSON metadata sidecars.
+"""
+
 import argparse
 import os
 import os.path as op
@@ -15,20 +32,36 @@ from tqdm import tqdm
 from tqdm_joblib import tqdm_joblib
 import traceback
 from mario_scenes.load_data import load_scenes_info
-from mario_replays.utils import (
+from videogames.utils.replay import (
     replay_bk2,
     get_variables_from_replay,
+)
+from videogames.utils.video import (
     make_mp4,
     make_gif,
     make_webp,
-    create_sidecar_dict,
 )
-from mario_replays.load_data import collect_bk2_files
+from videogames.utils.metadata import create_sidecar_dict, collect_bk2_files
 
 
 def prune_variables(variables, start_idx, end_idx):
     """
-    Prune variables to the specified frame range.
+    Trim game state variables to a specific frame range.
+
+    Parameters
+    ----------
+    variables : dict
+        Dictionary of game state variables with list/array values indexed by frame.
+    start_idx : int
+        Starting frame index (inclusive).
+    end_idx : int
+        Ending frame index (exclusive).
+
+    Returns
+    -------
+    dict
+        New dictionary with array variables trimmed to [start_idx:end_idx].
+        Scalar values are preserved unchanged.
     """
     pruned_variables = {}
     for key, value in variables.items():
@@ -41,7 +74,19 @@ def prune_variables(variables, start_idx, end_idx):
 
 def merge_metadata(additional_fields, base_dict):
     """
-    Add to base_dict only the key-value pairs from additional_fields that are not already present in base_dict.
+    Merge additional metadata into base dictionary without overwriting existing keys.
+
+    Parameters
+    ----------
+    additional_fields : dict
+        New key-value pairs to add to base_dict.
+    base_dict : dict
+        Existing metadata dictionary that takes precedence.
+
+    Returns
+    -------
+    dict
+        Updated base_dict with non-conflicting keys from additional_fields added.
     """
     for key, value in additional_fields.items():
         if key not in base_dict:
@@ -50,11 +95,54 @@ def merge_metadata(additional_fields, base_dict):
 
 def get_rep_order(ses, run, bk2_idx):
     """
-    Generate a string representing the repetition order based on subject, session, run, and bk2 index.
+    Generate a unique repetition identifier string.
+
+    Creates a zero-padded concatenation of session, run, and bk2 index
+    for unique clip identification within a dataset.
+
+    Parameters
+    ----------
+    ses : int
+        Session number.
+    run : int
+        Run number.
+    bk2_idx : int
+        BK2 file index within the run.
+
+    Returns
+    -------
+    str
+        9-character identifier: {ses:03d}{run:02d}{bk2_idx:02d}
     """
     return f"{str(ses).zfill(3)}{str(run).zfill(2)}{str(bk2_idx).zfill(2)}"
 
 def cut_scene_clips(repetition_variables, rep_order_string, scene_bounds):
+    """
+    Identify frame ranges where the player traverses a specific scene.
+
+    Detects scene entry and exit by monitoring player X position relative to
+    scene boundaries. A clip ends when the player crosses the scene exit point
+    or loses a life.
+
+    Parameters
+    ----------
+    repetition_variables : dict
+        Game state variables including player_x_posHi, player_x_posLo, lives,
+        level_layout, and filename.
+    rep_order_string : str
+        Unique repetition identifier from get_rep_order().
+    scene_bounds : dict
+        Dictionary with keys:
+        - 'start': int, scene entry X position
+        - 'end': int, scene exit X position
+        - 'level_layout': int, required level layout ID
+
+    Returns
+    -------
+    dict
+        Mapping of clip codes (14-char strings) to (start_frame, end_frame) tuples.
+        Clip code format: {rep_order}{start_frame:07d}
+    """
 
     bk2_file = repetition_variables["filename"]
 
@@ -113,13 +201,40 @@ def process_bk2_file(
     bk2_info, args, scenes_info_dict, DATA_PATH, OUTPUT_FOLDER, STIMULI_PATH
 ):
     """
-    Process a single bk2 file to extract clips, saving only the requested file types:
-    - savestate (.state)
-    - ramdump (.npz)
-    - gif (.gif)
-    - mp4 (.mp4)
-    - webp (.webp)
-    - json (.json)
+    Process a single BK2 replay file to extract all scene clips.
+
+    For each scene in the current level, this function:
+    1. Replays the BK2 file to extract frames and game state
+    2. Identifies scene traversals using cut_scene_clips()
+    3. Saves requested outputs: videos, savestates, ramdumps, metadata
+    4. Creates BIDS-compliant directory structure and JSON sidecars
+
+    Parameters
+    ----------
+    bk2_info : dict
+        Replay file metadata with keys: bk2_file, bk2_idx, sub, ses, run
+    args : argparse.Namespace
+        Command-line arguments specifying output options:
+        - save_videos, save_states, save_ramdumps, save_variables
+        - video_format, game_name, replays_path
+    scenes_info_dict : dict
+        Scene definitions keyed by scene_id (e.g., 'w1l1s1')
+    DATA_PATH : str
+        Root directory of Mario dataset
+    OUTPUT_FOLDER : str
+        Derivatives output directory
+    STIMULI_PATH : str
+        Path to game ROM files
+
+    Returns
+    -------
+    tuple of (list, dict)
+        - error_logs: List of error message strings
+        - processing_stats: Dict with keys clips_processed, clips_skipped, errors
+
+    Notes
+    -----
+    This function is designed for parallel execution via joblib.
     """
     # Add stimuli path in each child process
     retro.data.Integrations.add_custom_path(STIMULI_PATH)
@@ -301,6 +416,55 @@ def process_bk2_file(
 
 
 def main(args):
+    """
+    Main entry point for scene clip extraction pipeline.
+
+    Orchestrates the complete clip extraction workflow:
+    1. Load scene definitions from mastersheet
+    2. Collect all BK2 replay files matching subject/session filters
+    3. Process files in parallel to extract clips
+    4. Generate processing logs and BIDS dataset_description.json
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        Command-line arguments with attributes:
+        - datapath: Path to Mario dataset root
+        - output: Path for derivatives output
+        - stimuli: Path to game ROMs (default: {datapath}/stimuli)
+        - n_jobs: Number of parallel jobs (-1 = all cores)
+        - save_videos, save_states, save_ramdumps, save_variables: bool flags
+        - video_format: 'mp4', 'gif', or 'webp'
+        - subjects: List of subject IDs to process (None = all)
+        - sessions: List of session IDs to process (None = all)
+        - simple: Use SuperMarioBrosSimple-Nes if True
+        - verbose: Verbosity level (0=WARNING, 1=INFO, 2=DEBUG)
+        - replays_path: Path to replay metadata JSON files
+
+    Output Structure
+    ----------------
+    {output}/{output_name}/
+        dataset_description.json
+        processing_log.txt
+        sub-{sub}/
+            ses-{ses}/
+                beh/
+                    videos/
+                        sub-{sub}_ses-{ses}_run-{run}_level-{level}_scene-{scene}_clip-{code}.{ext}
+                    savestates/
+                        sub-{sub}_ses-{ses}_run-{run}_level-{level}_scene-{scene}_clip-{code}.state
+                    ramdumps/
+                        sub-{sub}_ses-{ses}_run-{run}_level-{level}_scene-{scene}_clip-{code}.npz
+                    infos/
+                        sub-{sub}_ses-{ses}_run-{run}_level-{level}_scene-{scene}_clip-{code}.json
+                    variables/
+                        sub-{sub}_ses-{ses}_run-{run}_level-{level}_scene-{scene}_clip-{code}.json
+
+    Notes
+    -----
+    Progress is displayed via tqdm progress bar during parallel processing.
+    All errors are logged to processing_log.txt with summary statistics.
+    """
     # Get datapath
     DATA_PATH = op.abspath(args.datapath)
 

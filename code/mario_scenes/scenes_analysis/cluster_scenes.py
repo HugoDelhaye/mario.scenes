@@ -1,3 +1,18 @@
+"""
+Hierarchical Clustering for Mario Scenes
+
+This module performs hierarchical clustering on scene annotation features to group
+scenes by gameplay similarity. Supports multiple cluster counts and generates
+summary statistics for each clustering solution.
+
+Main Functions:
+    - generate_clusters(): Compute hierarchical clustering for multiple cluster counts
+    - summary_clusters(): Generate per-cluster statistics and feature profiles
+
+Output:
+    Pickle file with cluster assignments and summaries for each requested cluster count.
+"""
+
 import argparse
 import scipy
 import numpy as np
@@ -8,7 +23,50 @@ import pickle
 import os
 import os.path as op
 
+
 def generate_clusters(list_n_clusters=[10]):
+    """
+    Perform hierarchical clustering on scene annotations.
+
+    Uses Ward linkage with Euclidean distance to cluster scenes based on their
+    27-dimensional feature vectors. Cuts the dendrogram at multiple heights to
+    generate solutions with varying numbers of clusters.
+
+    Parameters
+    ----------
+    list_n_clusters : list of int, default=[10]
+        List of cluster counts to generate (e.g., [5, 10, 15, 20]).
+        Each value produces a different clustering solution by cutting
+        the hierarchy at a different height.
+
+    Returns
+    -------
+    dict
+        Nested dictionary with structure:
+        {
+            0: {
+                'index': np.ndarray,  # Cluster assignments for each scene
+                'n_clusters': int,    # Number of clusters
+                'summary': dict       # Output from summary_clusters()
+            },
+            1: {...},
+            ...
+        }
+        Keys are enumeration indices (not cluster counts).
+
+    Examples
+    --------
+    >>> clusters = generate_clusters([10, 20, 30])
+    >>> print(clusters[0]['n_clusters'])
+    10
+    >>> print(clusters[0]['summary'][0])
+    {'n_scenes': 23, 'labels': ..., 'homogeneity': ...}
+
+    Notes
+    -----
+    Uses scipy.cluster.hierarchy for clustering. The dendrogram leaf order
+    is preserved but not currently used in output.
+    """
     X = load_annotation_data()
     hier = linkage(X, method='ward', metric='euclidean')  # scipy's hierarchical clustering
     res = dendrogram(hier, labels=X.index, get_leaves=True)  # Generate a dendrogram from the hierarchy
@@ -25,6 +83,52 @@ def generate_clusters(list_n_clusters=[10]):
     return part
 
 def summary_clusters(part, threshold=0.05):
+    """
+    Generate summary statistics for each cluster.
+
+    Computes per-cluster feature profiles by averaging annotation values within
+    each cluster. Identifies dominant features (those exceeding threshold) and
+    calculates homogeneity scores.
+
+    Parameters
+    ----------
+    part : np.ndarray
+        1D array of cluster assignments, same length as number of scenes.
+        Values are cluster IDs (e.g., 0, 1, 2, ..., n_clusters-1).
+    threshold : float, default=0.05
+        Minimum average feature value to include in cluster 'labels'.
+        Features below this threshold are considered absent in the cluster.
+
+    Returns
+    -------
+    dict
+        Nested dictionary keyed by cluster ID:
+        {
+            0: {
+                'n_scenes': int,                # Number of scenes in cluster
+                'labels': pd.Series,            # Features above threshold, sorted descending
+                'homogeneity': pd.Series        # Average value for all 27 features
+            },
+            1: {...},
+            ...
+        }
+
+    Examples
+    --------
+    >>> X = load_annotation_data()
+    >>> X['clusters'] = cluster_assignments  # From generate_clusters()
+    >>> summary = summary_clusters(cluster_assignments, threshold=0.1)
+    >>> print(summary[0]['labels'])
+    Enemy       0.85
+    Gap         0.62
+    Roof        0.15
+    dtype: float64
+
+    Notes
+    -----
+    'labels' contains only features exceeding the threshold, sorted by frequency.
+    'homogeneity' contains all 27 features regardless of threshold.
+    """
     X = load_annotation_data()
     X['clusters'] = part
     all_cluster = X.groupby('clusters').mean()

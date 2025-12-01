@@ -16,7 +16,11 @@ dependencies = [
     "joblib",
     "scipy",
     "seaborn",
-    "invoke"
+    "invoke",
+    "umap-learn",
+    "scikit-learn",
+    "opencv-python",
+    "videogames @ git+https://github.com/courtois-neuromod/videogames.utils.git"
 ]
 description = "A set of functions and code to split levels of the game Super Mario Bros. into smaller atomic scenes."
 authors = [{name = "Yann Harel"}]

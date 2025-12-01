@@ -5,14 +5,16 @@ Extract, analyze, and cluster atomic gameplay scenes from Super Mario Bros repla
 ## Overview
 
 This package processes Super Mario Bros gameplay recordings (.bk2 files) from the [Courtois NeuroMod project](https://www.cneuromod.ca/) to:
+
 - **Extract** individual scene clips from full-level replays
 - **Annotate** scenes with 27 gameplay features (enemies, gaps, platforms, etc.)
 - **Analyze** scenes using dimensionality reduction (PCA, UMAP, t-SNE)
 - **Cluster** scenes by gameplay similarity
 
-Scenes are atomic gameplay segments with consistent mechanics (e.g., "gap with enemies", "staircase descent"). This decomposition enables fine-grained behavioral and neural analysis.
+Scenes are atomic gameplay segments with consistent mechanics (e.g., "gap with enem─ies", "staircase descent"). This decomposition enables fine-grained behavioral and neural analysis.
 
 This package is a companion to [cneuromod.mario](https://github.com/courtois-neuromod/mario) and integrates with:
+
 - [mario.annotations](https://github.com/courtois-neuromod/mario.annotations)
 - [mario_learning](https://github.com/courtois-neuromod/mario_learning)
 - [mario_curiosity.scene_agents](https://github.com/courtois-neuromod/mario_curiosity.scene_agents)
@@ -33,6 +35,7 @@ invoke setup-mario-dataset
 ```
 
 **HPC Setup (Compute Canada):**
+
 ```bash
 pip install invoke
 invoke setup-env-on-beluga
@@ -54,6 +57,7 @@ invoke create-clips --subjects sub-01 sub-02 --sessions ses-001 --n-jobs 8
 ```
 
 **Output**: BIDS-structured directories with videos, savestates, and JSON metadata:
+
 ```
 outputdata/scene_clips/
 └── sub-01/ses-001/beh/
@@ -170,16 +174,16 @@ print(summary[0])  # {'n_scenes': 23, 'labels': ..., 'homogeneity': ...}
 
 27 binary features capture gameplay elements:
 
-| Category | Features |
-|----------|----------|
-| **Enemies** | Enemy, 2-Horde, 3-Horde, 4-Horde, Gap enemy |
-| **Terrain** | Roof, Gap, Multiple gaps, Variable gaps, Pillar gap |
-| **Valleys** | Valley, Pipe valley, Empty valley, Enemy valley, Roof valley |
-| **Paths** | 2-Path, 3-Path |
-| **Stairs** | Stair up, Stair down, Empty stair valley, Enemy stair valley, Gap stair valley |
-| **Platforms** | Moving platform |
-| **Rewards** | Risk/Reward, Reward, Bonus zone |
-| **Landmarks** | Flagpole, Beginning |
+| Category      | Features                                                                       |
+| ------------- | ------------------------------------------------------------------------------ |
+| **Enemies**   | Enemy, 2-Horde, 3-Horde, 4-Horde, Gap enemy                                    |
+| **Terrain**   | Roof, Gap, Multiple gaps, Variable gaps, Pillar gap                            |
+| **Valleys**   | Valley, Pipe valley, Empty valley, Enemy valley, Roof valley                   |
+| **Paths**     | 2-Path, 3-Path                                                                 |
+| **Stairs**    | Stair up, Stair down, Empty stair valley, Enemy stair valley, Gap stair valley |
+| **Platforms** | Moving platform                                                                |
+| **Rewards**   | Risk/Reward, Reward, Bonus zone                                                |
+| **Landmarks** | Flagpole, Beginning                                                            |
 
 See `sourcedata/scenes_info/mario_scenes_manual_annotation.pdf` for details.
 
@@ -190,6 +194,7 @@ See `sourcedata/scenes_info/mario_scenes_manual_annotation.pdf` for details.
 Recorded with [gym-retro](https://github.com/openai/retro) at 60 Hz. Files store button presses for deterministic replay.
 
 Expected structure:
+
 ```
 sourcedata/mario/
 └── sub-{subject}/ses-{session}/beh/
@@ -200,6 +205,7 @@ sourcedata/mario/
 ### Output Clips
 
 BIDS-compliant format with unique clip identifiers:
+
 ```
 {output}/scene_clips/sub-{subject}/ses-{session}/beh/
 ├── videos/       # .mp4/.gif/.webp clips
@@ -213,17 +219,17 @@ Filename format: `sub-{subject}_ses-{session}_run-{run}_level-{level}_scene-{sce
 
 ## Available Tasks
 
-| Task | Description |
-|------|-------------|
-| `setup-env` | Create virtual environment and install dependencies |
-| `setup-env-on-beluga` | HPC-specific environment setup |
-| `setup-mario-dataset` | Download Mario dataset via datalad |
-| `get-scenes-data` | Download scene metadata from Zenodo |
-| `dimensionality-reduction` | Apply PCA, UMAP, t-SNE to annotations |
-| `cluster-scenes` | Hierarchical clustering on scene features |
-| `create-clips` | Extract scene clips from replays |
-| `make-scene-images` | Generate background images |
-| `full-pipeline` | Run complete analysis workflow |
+| Task                       | Description                                         |
+| -------------------------- | --------------------------------------------------- |
+| `setup-env`                | Create virtual environment and install dependencies |
+| `setup-env-on-beluga`      | HPC-specific environment setup                      |
+| `setup-mario-dataset`      | Download Mario dataset via datalad                  |
+| `get-scenes-data`          | Download scene metadata from Zenodo                 |
+| `dimensionality-reduction` | Apply PCA, UMAP, t-SNE to annotations               |
+| `cluster-scenes`           | Hierarchical clustering on scene features           |
+| `create-clips`             | Extract scene clips from replays                    |
+| `make-scene-images`        | Generate background images                          |
+| `full-pipeline`            | Run complete analysis workflow                      |
 
 Run `invoke --list` for full options.
 
@@ -232,8 +238,8 @@ Run `invoke --list` for full options.
 - **Dataset**: [Courtois NeuroMod](https://docs.cneuromod.ca/)
 - **Scene Definitions**: [Zenodo Record 15586709](https://zenodo.org/records/15586709)
 - **Related Packages**:
-  - [videogames.utils](https://github.com/courtois-neuromod/videogames.utils) - Replay processing utilities
-  - [airoh](https://github.com/airoh-pipeline/airoh) - Reproducible workflow framework
+    - [videogames.utils](https://github.com/courtois-neuromod/videogames.utils) - Replay processing utilities
+    - [airoh](https://github.com/airoh-pipeline/airoh) - Reproducible workflow framework
 
 ## Citation
 
@@ -243,7 +249,7 @@ If you use this package, please cite:
 @misc{mario_scenes,
   title={Mario Scenes: Atomic Scene Decomposition for Super Mario Bros},
   author={Courtois NeuroMod Team},
-  year={2024},
+  year={2025},
   url={https://github.com/courtois-neuromod/mario.scenes}
 }
 ```

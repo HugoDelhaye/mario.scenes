@@ -255,7 +255,14 @@ def process_bk2_file(bk2_info, args, scenes_info_dict, DATA_PATH, OUTPUT_FOLDER,
                     continue
 
                 try:
-                    _save_clip_outputs(paths, frames[start_idx:end_idx], states, audio,
+                    # Calculate audio slice based on frame indices
+                    # Assuming 60 FPS for NES emulation
+                    samples_per_frame = audio_rate // 60
+                    audio_start = start_idx * samples_per_frame
+                    audio_end = end_idx * samples_per_frame
+                    audio_slice = audio[audio_start:audio_end] if audio is not None else None
+
+                    _save_clip_outputs(paths, frames[start_idx:end_idx], states, audio_slice,
                                      audio_rate, start_idx, end_idx, scene_vars, args)
                     processing_stats["clips_processed"] += 1
 

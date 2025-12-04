@@ -19,8 +19,8 @@ import numpy as np
 import scipy.ndimage
 import glob
 import pandas as pd
-from videogames.utils.replay import replay_bk2, get_variables_from_replay
-from videogames.utils.metadata import collect_bk2_files
+from cneuromod_vg_utils.replay import replay_bk2, get_variables_from_replay
+from cneuromod_vg_utils.metadata import collect_bk2_files
 import os.path as op
 from mario_scenes.load_data import load_scenes_info
 from PIL import Image

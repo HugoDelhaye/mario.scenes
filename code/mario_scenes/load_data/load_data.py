@@ -1,3 +1,5 @@
+"""Load scene metadata, annotations, and background images for Mario levels."""
+
 import pandas as pd
 import os.path as op
 import os
@@ -6,22 +8,14 @@ from PIL import Image
 
 BASE_DIR = op.dirname(op.dirname(op.dirname(op.dirname(op.abspath(__file__)))))
 SOURCEDATA = op.join(BASE_DIR, 'sourcedata')
-SCENES_MASTERSHEET = op.join(SOURCEDATA, 'scenes_info' ,'scenes_mastersheet.csv')
+SCENES_MASTERSHEET = op.join(SOURCEDATA, 'scenes_info', 'scenes_mastersheet.csv')
+
 
 def load_scenes_info(format='df'):
-    """
-    Load scenes information from a TSV file and return it in the specified format.
+    """Load scene definitions with start/end positions and layouts.
 
     Args:
-        format (str): The format in which to return the scenes information. 
-                      Must be either 'df' for a pandas DataFrame or 'dict' for a dictionary. 
-                      Default is 'df'.
-
-    Returns:
-        pandas.DataFrame or dict: The scenes information in the specified format.
-
-    Raises:
-        ValueError: If the format is not 'df' or 'dict'.
+        format: 'df' for DataFrame or 'dict' for {scene_id: {start, end, level_layout}}
     """
     # Check if file exists
     assert op.exists(SCENES_MASTERSHEET), f"File not found: {SCENES_MASTERSHEET}, make sure you run 'invoke collect-resources' first."
@@ -48,26 +42,12 @@ def load_scenes_info(format='df'):
     
 
 def load_background_images(level='level'):
-    """
-    Load background images from the specified folder based on the level type.
-    
-    Parameters
-    ----------
-    sourcedata : str
-        Path to the source data directory.
-    level : str, optional
-        Type of background to load, either 'level' or 'scene'.
-        Default is 'level'.
-    
-    Returns
-    -------
-    list
-        List of PIL Image objects loaded from PNG files in the appropriate background folder.
-        
-    Notes
-    -----
-    Images are loaded from either 'level_backgrounds' or 'scene_backgrounds' 
-    subdirectories based on the level parameter.
+    """Load background images as PIL objects.
+
+    Args:
+        level: 'level' for full levels or 'scene' for individual scenes
+
+    Returns dict mapping IDs (e.g., 'w1l1') to PIL Image objects.
     """
     # load images
     if level == 'level':
@@ -90,13 +70,9 @@ def load_background_images(level='level'):
 
 
 def load_annotation_data():
-    """
-    Curates the input DataFrame by creating a 'scene_ID' column and selecting specific feature columns.
-    Args:
-        df (pandas.DataFrame): The input DataFrame containing scene data with columns 'World', 'Level', 'Scene', and various feature columns.
+    """Load 27 binary feature annotations (enemies, gaps, platforms, etc) for all scenes.
 
-    Returns:
-        pandas.DataFrame: A curated DataFrame with a new 'scene_ID' column and selected feature columns.
+    Returns DataFrame indexed by scene_ID with shape (n_scenes, 27).
     """
     # Create the 'scene_ID' column
     df = load_scenes_info(format='df')
@@ -121,6 +97,13 @@ def load_annotation_data():
     return annotations_df
 
 def load_reduced_data(method='umap'):
+    """Load 2D dimensionality-reduced coordinates.
+
+    Args:
+        method: 'umap', 'pca', or 'tsne'
+
+    Returns DataFrame with columns [DR_1, DR_2] indexed by scene_ID.
+    """
     fname = op.join(BASE_DIR, 'outputs', 'dimensionality_reduction', f'{method}.csv')
     assert op.exists(fname), f"File not found: {fname}, make sure you run 'invoke dimensionality-reduction' first."
     return pd.read_csv(fname, index_col=0)

@@ -1,8 +1,8 @@
 tqdm
 tqdm_joblib
 scikit-video
-python-pptx 
-Pillow 
+python-pptx
+Pillow
 lxml
 stable-retro
 joblib
@@ -17,4 +17,4 @@ invoke
 umap-learn
 scikit-learn
 opencv-python
-git+https://github.com/courtois-neuromod/mario.replays.git
+git+https://github.com/courtois-neuromod/videogames.utils.git

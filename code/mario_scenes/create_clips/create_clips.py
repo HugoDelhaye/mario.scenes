@@ -1,3 +1,5 @@
+"""Extract scene clips from Super Mario Bros replay files."""
+
 import argparse
 import os
 import os.path as op
@@ -37,6 +39,7 @@ def merge_metadata(additional_fields, base_dict):
         if key not in base_dict:
             base_dict[key] = value
     return base_dict
+
 
 def get_rep_order(ses, run, bk2_idx):
     """Generate repetition order string from session, run, and bk2 index."""
@@ -194,12 +197,8 @@ def process_bk2_file(bk2_info, args, scenes_info_dict, DATA_PATH, OUTPUT_FOLDER,
     retro.data.Integrations.add_custom_path(STIMULI_PATH)
 
     error_logs = []
-    processing_stats = {
-        "bk2_file": bk2_info["bk2_file"],
-        "clips_processed": 0,
-        "clips_skipped": 0,
-        "errors": 0,
-    }
+    processing_stats = {"bk2_file": bk2_info["bk2_file"], "clips_processed": 0,
+                       "clips_skipped": 0, "errors": 0}
 
     try:
         bk2_file = bk2_info["bk2_file"]
@@ -264,6 +263,7 @@ def process_bk2_file(bk2_info, args, scenes_info_dict, DATA_PATH, OUTPUT_FOLDER,
                     processing_stats["clips_processed"] += 1
 
                 except Exception as e:
+                    error_logs.append(f"Error processing clip {clip_code}: {str(e)}")
                     error_logs.append(f"Error processing clip {clip_code}: {str(e)}")
                     processing_stats["errors"] += 1
 

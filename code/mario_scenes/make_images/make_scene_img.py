@@ -1,11 +1,26 @@
+"""
+Background Image Generation for Mario Scenes
+
+This module generates canonical background images for Super Mario Bros levels and
+scenes by averaging pixel columns across multiple gameplay replays. This removes
+dynamic sprites (Mario, enemies) to reveal the static level geometry.
+
+Main Functions:
+    - main(): Entry point for background generation pipeline
+    - get_pole_position(): Find maximum X position (flagpole) for a level
+    - average_array(): Compute mean across stacked arrays
+
+Output:
+    PNG images in sourcedata/level_backgrounds/ and sourcedata/scene_backgrounds/
+"""
+
 import retro
 import numpy as np
 import scipy.ndimage
 import glob
 import pandas as pd
-from mario_replays import replay_bk2
-from mario_replays.utils import get_variables_from_replay
-from mario_replays.load_data import collect_bk2_files
+from videogames.utils.replay import replay_bk2, get_variables_from_replay
+from videogames.utils.metadata import collect_bk2_files
 import os.path as op
 from mario_scenes.load_data import load_scenes_info
 from PIL import Image
@@ -13,7 +28,33 @@ import os
 import argparse
 from pathlib import Path
 
+
 def get_pole_position(scenes_info_dict, level_fullname='w1l1'):
+    """
+    Find the maximum X position (flagpole location) for a given level.
+
+    Searches all scenes in the specified level and returns the largest
+    'end' position, which corresponds to the flagpole at the level's conclusion.
+
+    Parameters
+    ----------
+    scenes_info_dict : dict
+        Scene definitions from load_scenes_info(format='dict').
+    level_fullname : str, default='w1l1'
+        Level identifier (e.g., 'w1l1', 'w3l2').
+
+    Returns
+    -------
+    int
+        Maximum scene exit position in pixels.
+
+    Examples
+    --------
+    >>> scenes = load_scenes_info(format='dict')
+    >>> pole_pos = get_pole_position(scenes, 'w1l1')
+    >>> print(pole_pos)
+    3392
+    """
     scene_end_positions = []
     for scene in scenes_info_dict.keys():
         if level_fullname in scene:
@@ -22,9 +63,70 @@ def get_pole_position(scenes_info_dict, level_fullname='w1l1'):
     return pole_position
 
 def average_array(arrays):
+    """
+    Compute element-wise mean across a list of arrays.
+
+    Parameters
+    ----------
+    arrays : list of np.ndarray
+        Arrays to average, all must have the same shape.
+
+    Returns
+    -------
+    np.ndarray
+        Mean array with same shape as inputs.
+    """
     return np.mean(np.stack(arrays), axis=0)
 
+
 def main(args):
+    """
+    Generate background images by averaging replay frames.
+
+    For each level, this function:
+    1. Collects all replay files for the specified subjects
+    2. Replays each file and extracts frames
+    3. Accumulates pixel columns by X position
+    4. Averages columns across replays to remove dynamic elements
+    5. Saves full level and individual scene backgrounds as PNG
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        Command-line arguments with attributes:
+        - data_path: Path to Mario dataset (default: sourcedata/mario)
+        - subjects: Subject ID or 'all' (default: 'all')
+        - level: Specific level to process (e.g., 'w1l1'), or None for all
+        - simple: Use SuperMarioBrosSimple-Nes if True
+
+    Output
+    ------
+    PNG files:
+        - sourcedata/level_backgrounds/{level}.png
+        - sourcedata/scene_backgrounds/{scene}.png
+
+    Algorithm
+    ---------
+    For each frame at scroll position X:
+        1. Determine visible columns (typically rightmost 10 pixels)
+        2. Append column pixels to per-position accumulators
+        3. After all replays, average accumulated columns
+        4. Assemble columns into full-width background image
+
+    Notes
+    -----
+    Only frames where player_state==8 (active/alive) are used.
+    Scenes with negative extent (e.g., bonus zones) are handled specially.
+    Memory is cleared between levels to prevent OOM on large datasets.
+
+    Examples
+    --------
+    To generate all backgrounds:
+    >>> invoke make-scene-images
+
+    To generate backgrounds for a specific level:
+    >>> invoke make-scene-images --level w1l1 --subjects sub-03
+    """
     script_path = Path(__file__).resolve()
     repo_dir = script_path.parents[3]
     if args.data_path is None:

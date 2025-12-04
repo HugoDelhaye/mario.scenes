@@ -1,193 +1,259 @@
-# mario.scenes
+# Mario Scenes
 
-Extract and analyze gameplay "scenes" from Super Mario Bros recordings. A scene is a ~1 screen-width segment representing a specific design pattern or challenge.
+Extract, analyze, and cluster atomic gameplay scenes from Super Mario Bros replay data.
 
-## What Are Scenes?
+## Overview
 
-Scenes divide each Mario level into meaningful gameplay segments based on player position:
-- World 1-1 has 32 scenes (w1l1s01 through w1l1s32)
-- Each scene = distinct challenge (first goomba, first pit, pipe sequence, etc.)
-- Enables fine-grained behavioral and neural analysis
+This package processes Super Mario Bros gameplay recordings (.bk2 files) from the [Courtois NeuroMod project](https://www.cneuromod.ca/) to:
 
-## What You Get
+- **Extract** individual scene clips from full-level replays
+- **Annotate** scenes with 27 gameplay features (enemies, gaps, platforms, etc.)
+- **Analyze** scenes using dimensionality reduction (PCA, UMAP, t-SNE)
+- **Cluster** scenes by gameplay similarity
 
-For each scene encountered during gameplay:
-- Video clips or images of the scene
-- Metadata JSON with timing, boundaries, and performance stats
-- Scene similarity analysis and clustering results
+Scenes are atomic gameplay segments with consistent mechanics (e.g., "gap with enem─ies", "staircase descent"). This decomposition enables fine-grained behavioral and neural analysis.
+
+This package is a companion to [cneuromod.mario](https://github.com/courtois-neuromod/mario) and integrates with:
+
+- [mario.annotations](https://github.com/courtois-neuromod/mario.annotations)
+- [mario_learning](https://github.com/courtois-neuromod/mario_learning)
+- [mario_curiosity.scene_agents](https://github.com/courtois-neuromod/mario_curiosity.scene_agents)
+
+## Installation
+
+```bash
+# Clone and install
+git clone git@github.com:courtois-neuromod/mario.scenes
+cd mario.scenes
+pip install -e .
+
+# Download scene metadata
+invoke get-scenes-data
+
+# (Optional) Download full Mario dataset
+invoke setup-mario-dataset
+```
+
+**HPC Setup (Compute Canada):**
+
+```bash
+pip install invoke
+invoke setup-env-on-beluga
+```
 
 ## Quick Start
 
+### 1. Extract Scene Clips
+
+Extract video clips for each scene traversal from replay files:
+
 ```bash
-# Install
-git clone git@github.com:courtois-neuromod/mario.scenes
-cd mario.scenes
-pip install -r requirements.txt
-pip install -e .
+# Extract clips from all replays
+invoke create-clips --datapath sourcedata/mario --output outputdata/ \
+  --save-videos --video-format mp4
 
-# Or with airoh
-pip install airoh
-invoke setup-env
-
-# Download scene definitions
-invoke get-scenes-data
-
-# Extract clips
-invoke create-clips
+# Process specific subjects/sessions with parallel jobs
+invoke create-clips --subjects sub-01 sub-02 --sessions ses-001 --n-jobs 8
 ```
 
-## Usage
+**Output**: BIDS-structured directories with videos, savestates, and JSON metadata:
 
-### With Airoh (Recommended)
+```
+outputdata/scene_clips/
+└── sub-01/ses-001/beh/
+    ├── videos/sub-01_ses-001_run-01_level-w1l1_scene-1_clip-*.mp4
+    ├── savestates/sub-01_ses-001_run-01_level-w1l1_scene-1_clip-*.state
+    └── infos/sub-01_ses-001_run-01_level-w1l1_scene-1_clip-*.json
+```
+
+### 2. Analyze Scene Features
+
+Reduce 27-dimensional annotations to 2D for visualization:
 
 ```bash
-# Extract scene clips
-invoke create-clips
-
-# With videos
-invoke create-clips --save-videos --video-format mp4
-
-# Analyze scenes
 invoke dimensionality-reduction
+```
+
+**Output**: `outputs/dimensionality_reduction/{pca,umap,tsne}.csv`
+
+### 3. Cluster Scenes
+
+Group scenes by gameplay similarity:
+
+```bash
+# Generate clusters with 5-30 groups
 invoke cluster-scenes
 
-# Full pipeline
+# Custom cluster counts
+invoke cluster-scenes --n-clusters "10 15 20"
+```
+
+**Output**: `outputs/cluster_scenes/hierarchical_clusters.pkl`
+
+### 4. Generate Background Images
+
+Create canonical level/scene backgrounds by averaging replay frames:
+
+```bash
+# Generate all backgrounds
+invoke make-scene-images
+
+# Specific level
+invoke make-scene-images --level w1l1 --subjects sub-03
+```
+
+**Output**: `sourcedata/{level,scene}_backgrounds/*.png`
+
+### Complete Pipeline
+
+Run all processing steps:
+
+```bash
 invoke full-pipeline
 ```
 
-### Direct Python Script
+## Python API
 
-```bash
-python code/mario_scenes/create_clips/create_clips.py \
-  --datapath sourcedata/mario \
-  --replays_path ../mario.replays/outputdata/replays \
-  --scenes_info sourcedata/scenes_info \
-  --output outputdata/mario_scenes
+### Load Scene Data
+
+```python
+from mario_scenes.load_data import (
+    load_scenes_info,
+    load_annotation_data,
+    load_background_images,
+    load_reduced_data
+)
+
+# Load scene boundaries
+scenes = load_scenes_info(format='dict')  # {scene_id: {start, end, layout}}
+print(scenes['w1l1s1'])  # {'start': 0, 'end': 256, 'level_layout': 0}
+
+# Load 27 feature annotations
+features = load_annotation_data()  # DataFrame (n_scenes × 27)
+print(features.loc['w1l1s1'])
+
+# Load 2D embeddings
+umap_coords = load_reduced_data(method='umap')  # DataFrame (n_scenes × 2)
+
+# Load background images
+backgrounds = load_background_images(level='scene')  # {scene_id: PIL.Image}
 ```
 
-## Requirements
+### Extract Clips Programmatically
 
-- Python ≥ 3.8
-- Mario dataset with `.bk2` files
-- mario.replays outputs (game variables)
-- Scene definitions (download with `invoke get-scenes-data`)
+```python
+from mario_scenes.create_clips.create_clips import cut_scene_clips, get_rep_order
+from videogames.utils.replay import get_variables_from_replay
 
-## Configuration
+# Replay a BK2 file
+variables, info, frames, states = get_variables_from_replay('path/to/file.bk2')
 
-Edit `invoke.yaml`:
+# Find scene traversals
+scene_bounds = {'start': 0, 'end': 256, 'level_layout': 0}
+rep_order = get_rep_order(ses=1, run=1, bk2_idx=0)
+clips = cut_scene_clips(variables, rep_order, scene_bounds)
 
-```yaml
-mario_dataset: sourcedata/mario
-replays_dataset: ../mario.replays/outputdata/replays
-scenes_info_dir: sourcedata/scenes_info
-output_dir: outputdata/mario_scenes
-
-n_jobs: -1              # Parallel processing
-save_videos: false
-save_images: true
-video_format: mp4       # mp4, gif, or webp
+# clips = {'0010100000000': (start_frame, end_frame), ...}
 ```
 
-## Output Structure
+### Cluster Analysis
+
+```python
+from mario_scenes.scenes_analysis.cluster_scenes import generate_clusters
+
+# Generate hierarchical clustering
+clusters = generate_clusters([10, 20, 30])
+
+# Examine 10-cluster solution
+print(clusters[0]['n_clusters'])  # 10
+summary = clusters[0]['summary']
+print(summary[0])  # {'n_scenes': 23, 'labels': ..., 'homogeneity': ...}
+```
+
+## Scene Annotation Schema
+
+27 binary features capture gameplay elements:
+
+| Category      | Features                                                                       |
+| ------------- | ------------------------------------------------------------------------------ |
+| **Enemies**   | Enemy, 2-Horde, 3-Horde, 4-Horde, Gap enemy                                    |
+| **Terrain**   | Roof, Gap, Multiple gaps, Variable gaps, Pillar gap                            |
+| **Valleys**   | Valley, Pipe valley, Empty valley, Enemy valley, Roof valley                   |
+| **Paths**     | 2-Path, 3-Path                                                                 |
+| **Stairs**    | Stair up, Stair down, Empty stair valley, Enemy stair valley, Gap stair valley |
+| **Platforms** | Moving platform                                                                |
+| **Rewards**   | Risk/Reward, Reward, Bonus zone                                                |
+| **Landmarks** | Flagpole, Beginning                                                            |
+
+See `sourcedata/scenes_info/mario_scenes_manual_annotation.pdf` for details.
+
+## Data Format
+
+### BK2 Replay Files
+
+Recorded with [gym-retro](https://github.com/openai/retro) at 60 Hz. Files store button presses for deterministic replay.
+
+Expected structure:
 
 ```
-outputdata/mario_scenes/
-└── sub-XX/
-    └── ses-XXX/
-        └── clips/
-            ├── scene-w1l1s01_code-XXXXX.mp4
-            ├── scene-w1l1s01_code-XXXXX.json
-            └── ...
+sourcedata/mario/
+└── sub-{subject}/ses-{session}/beh/
+    ├── sub-{subject}_ses-{session}_run-{run}_level-{level}.bk2
+    └── sub-{subject}_ses-{session}_run-{run}_events.tsv
 ```
+
+### Output Clips
+
+BIDS-compliant format with unique clip identifiers:
+
+```
+{output}/scene_clips/sub-{subject}/ses-{session}/beh/
+├── videos/       # .mp4/.gif/.webp clips
+├── savestates/   # .state files (gzipped RAM)
+├── ramdumps/     # .npz files (per-frame RAM)
+├── infos/        # .json metadata sidecars
+└── variables/    # .json game state variables
+```
+
+Filename format: `sub-{subject}_ses-{session}_run-{run}_level-{level}_scene-{scene}_clip-{code}.{ext}`
 
 ## Available Tasks
 
-```bash
-invoke --list                    # View all tasks
-invoke create-clips             # Extract scene clips
-invoke get-scenes-data          # Download scene definitions
-invoke dimensionality-reduction # Analyze scene features
-invoke cluster-scenes           # Cluster similar scenes
-invoke setup-env                # Install dependencies
-```
+| Task                       | Description                                         |
+| -------------------------- | --------------------------------------------------- |
+| `setup-env`                | Create virtual environment and install dependencies |
+| `setup-env-on-beluga`      | HPC-specific environment setup                      |
+| `setup-mario-dataset`      | Download Mario dataset via datalad                  |
+| `get-scenes-data`          | Download scene metadata from Zenodo                 |
+| `dimensionality-reduction` | Apply PCA, UMAP, t-SNE to annotations               |
+| `cluster-scenes`           | Hierarchical clustering on scene features           |
+| `create-clips`             | Extract scene clips from replays                    |
+| `make-scene-images`        | Generate background images                          |
+| `full-pipeline`            | Run complete analysis workflow                      |
 
-### Task Options
+Run `invoke --list` for full options.
 
-**`create-clips`**:
-- `--datapath` - Mario dataset location
-- `--replays-path` - Path to replays outputs
-- `--scenes-info` - Path to scene definitions
-- `--n-jobs` - Parallel jobs (-1 = all cores)
-- `--save-videos` - Generate video files
-- `--video-format` - Video format (mp4, gif, webp)
+## References
 
-**`cluster-scenes`**:
-- `--n-clusters-min` - Minimum clusters (default: 5)
-- `--n-clusters-max` - Maximum clusters (default: 30)
+- **Dataset**: [Courtois NeuroMod](https://docs.cneuromod.ca/)
+- **Scene Definitions**: [Zenodo Record 15586709](https://zenodo.org/records/15586709)
+- **Related Packages**:
+    - [videogames.utils](https://github.com/courtois-neuromod/videogames.utils) - Replay processing utilities
+    - [airoh](https://github.com/airoh-pipeline/airoh) - Reproducible workflow framework
 
-## Scene Definition Format
+## Citation
 
-Scenes are defined in `scenes_mastersheet.json`:
+If you use this package, please cite:
 
-```json
-{
-  "w1l1s01": {
-    "start": 0,
-    "end": 256,
-    "scene_name": "Opening",
-    "description": "First goomba encounter"
-  }
+```bibtex
+@misc{mario_scenes,
+  title={Mario Scenes: Atomic Scene Decomposition for Super Mario Bros},
+  author={Courtois NeuroMod Team},
+  year={2025},
+  url={https://github.com/courtois-neuromod/mario.scenes}
 }
 ```
 
-Each extracted clip gets metadata:
+## License
 
-```json
-{
-  "SceneFullName": "w1l1s01",
-  "ClipCode": "00100100000123",
-  "StartFrame": 123,
-  "EndFrame": 456,
-  "Duration": 5.55,
-  "Cleared": true,
-  "ScoreGained": 150
-}
-```
-
-**Clip Code**: `{session:03d}{run:02d}{bk2_idx:02d}{start_frame:07d}` - unique sortable identifier
-
-## Scene Applications
-
-**Behavioral Analysis**:
-- Compare performance across scene repetitions
-- Analyze learning curves for specific challenges
-- Identify difficulty patterns
-
-**Neural Analysis**:
-- Correlate brain activity with scene features
-- Decode scene identity from fMRI
-- Compare responses to similar scenes
-
-**Computational Modeling**:
-- Train RL agents on individual scenes
-- Model human learning strategies
-
-## Troubleshooting
-
-**"Scenes info not found"**: Run `invoke get-scenes-data`
-
-**"Replays not found"**: Process replays first with [mario.replays](https://github.com/courtois-neuromod/mario.replays)
-
-**No clips generated**: Check that player actually entered the scene during gameplay; use `--verbose`
-
-## Data Availability
-
-Scene definitions and backgrounds available on [Zenodo](https://zenodo.org/records/15586709)
-
-## Related Projects
-
-- [mario](https://github.com/courtois-neuromod/mario) - Main dataset
-- [mario.replays](https://github.com/courtois-neuromod/mario.replays) - Extract game variables (required)
-- [mario.annotations](https://github.com/courtois-neuromod/mario.annotations) - Event annotations
-
-Part of the [Courtois NeuroMod](https://www.cneuromod.ca/) project.
+MIT License - See LICENSE file for details.

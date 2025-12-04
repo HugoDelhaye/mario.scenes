@@ -1,8 +1,24 @@
 """
-Invoke tasks for mario.scenes project using airoh.
+Mario Scenes - Invoke Tasks
 
-This module provides tasks for extracting and analyzing scene clips
-from the Mario dataset.
+This module defines reproducible workflow tasks for the mario.scenes pipeline,
+following airoh pipeline conventions for task organization and documentation.
+
+Available Tasks:
+    Setup & Configuration:
+        - setup-env: Create virtual environment and install dependencies
+        - setup-env-on-beluga: HPC-specific environment setup for Compute Canada
+        - setup-mario-dataset: Download and configure Mario dataset via datalad
+        - get-scenes-data: Download scene metadata and background images from Zenodo
+
+    Analysis & Processing:
+        - dimensionality-reduction: Apply PCA, UMAP, and t-SNE to scene annotations
+        - cluster-scenes: Perform hierarchical clustering on scene features
+        - create-clips: Extract video clips from replay files for each scene
+        - make-scene-images: Generate background images for levels and scenes
+
+    Workflows:
+        - full-pipeline: Execute complete analysis workflow
 """
 
 from invoke import task
@@ -16,359 +32,361 @@ from airoh.datalad import get_data
 BASE_DIR = op.dirname(op.abspath(__file__))
 
 
-@task
-def create_clips(
-    c,
-    datapath=None,
-    replays_path=None,
-    scenes_info=None,
-    output=None,
-    n_jobs=None,
-    save_videos=False,
-    save_images=True,
-    video_format="mp4",
-    simple=False,
-    verbose=False,
-):
-    """
-    Extract scene clips from Mario gameplay replays.
+# ===============================
+# 📦 Setup & Configuration
+# ===============================
 
-    This task processes replay files and extracts individual scene clips based on
-    scene boundary definitions, generating videos/images and metadata for each clip.
+@task
+def setup_env(c):
+    """🔧 Set up Python virtual environment and install dependencies.
+
+    Creates a virtual environment in ./env/ and installs all required packages
+    from requirements.txt, then installs the mario_scenes package in editable mode.
 
     Parameters
     ----------
     c : invoke.Context
-        The Invoke context (automatically provided).
-    datapath : str, optional
-        Path to the mario dataset root. Defaults to mario_dataset from invoke.yaml.
-    replays_path : str, optional
-        Path to replays dataset. Defaults to replays_dataset from invoke.yaml.
-    scenes_info : str, optional
-        Path to scenes info directory. Defaults to scenes_info_dir from invoke.yaml.
-    output : str, optional
-        Output directory for clips. Defaults to output_dir from invoke.yaml.
-    n_jobs : int, optional
-        Number of parallel jobs (-1 for all cores). Defaults to n_jobs from invoke.yaml.
-    save_videos : bool, optional
-        Save video files for clips. Default: False.
-    save_images : bool, optional
-        Save image files for clips. Default: True.
-    video_format : str, optional
-        Video format (mp4, gif, webp). Default: mp4.
-    simple : bool, optional
-        Use simplified game version. Default: False.
-    verbose : bool, optional
-        Enable verbose output. Default: False.
-
-    Examples
-    --------
-    Extract clips with default settings:
-    ```bash
-    invoke create-clips
-    ```
-
-    Extract with videos and verbose output:
-    ```bash
-    invoke create-clips --save-videos --verbose
-    ```
-
-    Use custom paths:
-    ```bash
-    invoke create-clips \
-      --datapath /data/mario \
-      --output /data/derivatives/scenes \
-      --n-jobs 8
-    ```
-    """
-    # Resolve paths from configuration or arguments
-    if datapath is None:
-        datapath = c.config.get("mario_dataset", "sourcedata/mario")
-
-    if replays_path is None:
-        replays_path = c.config.get("replays_dataset", "../mario.replays/outputdata/replays")
-
-    if scenes_info is None:
-        scenes_info = c.config.get("scenes_info_dir", "sourcedata/scenes_info")
-
-    if output is None:
-        output = c.config.get("output_dir", "outputdata/mario_scenes")
-
-    if n_jobs is None:
-        n_jobs = c.config.get("n_jobs", -1)
-
-    # Validate paths
-    if not op.exists(datapath):
-        raise FileNotFoundError(
-            f"❌ Mario dataset not found at: {datapath}\n"
-            "   Run 'invoke setup-mario-dataset' or specify --datapath"
-        )
-
-    if not op.exists(scenes_info):
-        raise FileNotFoundError(
-            f"❌ Scenes info not found at: {scenes_info}\n"
-            "   Run 'invoke get-scenes-data' to download scene definitions"
-        )
-
-    # Build command
-    cmd = [
-        "python",
-        "code/mario_scenes/create_clips/create_clips.py",
-        "--datapath", datapath,
-        "--replays_path", replays_path,
-        "--scenes_info", scenes_info,
-        "--output", output,
-        "--n_jobs", str(n_jobs),
-        "--video_format", video_format,
-    ]
-
-    if save_videos:
-        cmd.append("--save_videos")
-
-    if save_images:
-        cmd.append("--save_images")
-
-    if simple:
-        cmd.append("--simple")
-
-    if verbose:
-        cmd.append("--verbose")
-
-    # Display execution info
-    print("🎬 Extracting Mario scene clips...")
-    print(f"   Dataset: {datapath}")
-    print(f"   Replays: {replays_path}")
-    print(f"   Scenes info: {scenes_info}")
-    print(f"   Output: {output}")
-    print(f"   Save videos: {save_videos}")
-    print(f"   Save images: {save_images}")
-    print()
-
-    # Run the extraction script
-    c.run(" ".join(cmd), pty=True)
-
-    print("✅ Clip extraction complete!")
-
-
-@task
-def dimensionality_reduction(c, input_dir=None, output_dir=None):
-    """
-    Perform dimensionality reduction on scene features.
-
-    Parameters
-    ----------
-    c : invoke.Context
-        The Invoke context.
-    input_dir : str, optional
-        Input directory with scene data.
-    output_dir : str, optional
-        Output directory for results.
+        The Invoke context object.
 
     Examples
     --------
     ```bash
-    invoke dimensionality-reduction
+    invoke setup-env
     ```
+
+    Notes
+    -----
+    This task creates a new virtual environment from scratch. If you need to update
+    dependencies in an existing environment, activate it manually and run pip install.
     """
-    print("📊 Running dimensionality reduction...")
-    cmd = ["python", "code/mario_scenes/scenes_analysis/dimensionality_reduction.py"]
-
-    if input_dir:
-        cmd.extend(["--input", input_dir])
-    if output_dir:
-        cmd.extend(["--output", output_dir])
-
-    c.run(" ".join(cmd), pty=True)
-    print("✅ Dimensionality reduction complete!")
+    c.run(f"python -m venv {BASE_DIR}/env && "
+          f"source {BASE_DIR}/env/bin/activate && "
+          "pip install -r requirements.txt && "
+          "pip install -e .")
 
 
 @task
-def cluster_scenes(c, n_clusters_min=None, n_clusters_max=None):
-    """
-    Perform hierarchical clustering on scenes.
+def setup_env_on_beluga(c):
+    """🖥️ Set up environment on Compute Canada Beluga HPC cluster.
+
+    Configures the environment on Beluga with specific Python module loading
+    and stable-retro installation from source. This task is tailored for the
+    Compute Canada HPC environment.
 
     Parameters
     ----------
     c : invoke.Context
-        The Invoke context.
-    n_clusters_min : int, optional
-        Minimum number of clusters. Defaults to n_clusters_min from invoke.yaml.
-    n_clusters_max : int, optional
-        Maximum number of clusters. Defaults to n_clusters_max from invoke.yaml.
+        The Invoke context object.
 
     Examples
     --------
     ```bash
-    invoke cluster-scenes
-    invoke cluster-scenes --n-clusters-min 5 --n-clusters-max 20
+    invoke setup-env-on-beluga
     ```
+
+    Notes
+    -----
+    This task assumes you're running on Compute Canada's Beluga cluster with
+    access to the module system and git repositories.
     """
-    if n_clusters_min is None:
-        n_clusters_min = c.config.get("n_clusters_min", 5)
-
-    if n_clusters_max is None:
-        n_clusters_max = c.config.get("n_clusters_max", 30)
-
-    print(f"🔬 Clustering scenes (k={n_clusters_min} to {n_clusters_max})...")
-
-    # Generate sequence of cluster numbers
-    n_clusters_range = " ".join(str(i) for i in range(n_clusters_min, n_clusters_max + 1))
-
-    cmd = f"python code/mario_scenes/scenes_analysis/cluster_scenes.py --n_clusters {n_clusters_range}"
-    c.run(cmd, pty=True)
-    print("✅ Clustering complete!")
+    c.run("module load python/3.10 && "
+          f"python -m venv {BASE_DIR}/env && "
+          "cd mario_scenes_env/lib/python3.10/site-packages && "
+          "git clone git@github.com:farama-foundation/stable-retro && "
+          "cd ../../../.. && "
+          "source ./mario_scenes_env/bin/activate && "
+          "pip install -e mario_scenes_env/lib/python3.10/site-packages/stable-retro/. && "
+          "pip install -r requirements_beluga.txt && "
+          "pip install -e .")
 
 
 @task
-def get_scenes_data(c, output_dir=None):
-    """
-    Download scene definitions and background images from Zenodo.
+def setup_mario_dataset(c):
+    """📥 Download and configure the Mario dataset using datalad.
+
+    Installs the Courtois NeuroMod Mario dataset including:
+    - All .bk2 replay files
+    - Event timing .tsv files
+    - Game ROM stimuli
+
+    The dataset is installed into sourcedata/mario/ following BIDS conventions.
 
     Parameters
     ----------
     c : invoke.Context
-        The Invoke context.
-    output_dir : str, optional
-        Output directory for scenes data. Defaults to scenes_info_dir from invoke.yaml.
-
-    Examples
-    --------
-    ```bash
-    invoke get-scenes-data
-    ```
-    """
-    if output_dir is None:
-        output_dir = c.config.get("scenes_info_dir", "sourcedata/scenes_info")
-
-    print("📥 Downloading scene data from Zenodo...")
-
-    # Create directories
-    os.makedirs(output_dir, exist_ok=True)
-    os.makedirs("sourcedata", exist_ok=True)
-
-    # Get URLs from config
-    scenes_pdf = c.config.get("scenes_pdf_url")
-    scenes_json = c.config.get("scenes_json_url")
-    scenes_csv = c.config.get("scenes_csv_url")
-    scene_bg = c.config.get("scene_backgrounds_url")
-    level_bg = c.config.get("level_backgrounds_url")
-
-    # Download files
-    print("   Downloading scenes mastersheet (PDF)...")
-    c.run(f'wget "{scenes_pdf}" -O {output_dir}/mario_scenes_manual_annotation.pdf', hide="out")
-
-    print("   Downloading scenes mastersheet (JSON)...")
-    c.run(f'wget "{scenes_json}" -O {output_dir}/scenes_mastersheet.json', hide="out")
-
-    print("   Downloading scenes mastersheet (CSV)...")
-    c.run(f'wget "{scenes_csv}" -O {output_dir}/scenes_mastersheet.csv', hide="out")
-
-    print("   Downloading scene backgrounds...")
-    c.run(f'wget "{scene_bg}" -O sourcedata/scene_backgrounds.tar.gz', hide="out")
-    c.run("tar -xzf sourcedata/scene_backgrounds.tar.gz -C sourcedata/")
-    os.remove("sourcedata/scene_backgrounds.tar.gz")
-
-    print("   Downloading level backgrounds...")
-    c.run(f'wget "{level_bg}" -O sourcedata/level_backgrounds.tar.gz', hide="out")
-    c.run("tar -xzf sourcedata/level_backgrounds.tar.gz -C sourcedata/")
-    os.remove("sourcedata/level_backgrounds.tar.gz")
-
-    print("✅ Scene data download complete!")
-
-
-@task
-def setup_mario_dataset(c, use_datalad=True):
-    """
-    Set up the Mario dataset with replay files and stimuli.
-
-    Parameters
-    ----------
-    c : invoke.Context
-        The Invoke context.
-    use_datalad : bool, optional
-        Use datalad to install the dataset. Default: True.
+        The Invoke context object.
 
     Examples
     --------
     ```bash
     invoke setup-mario-dataset
     ```
+
+    Notes
+    -----
+    Requires datalad to be installed and SSH access to the Courtois NeuroMod
+    repositories. The dataset is large (~several GB) and may take time to download.
     """
-    if use_datalad:
-        print("📦 Setting up Mario dataset with Datalad...")
-        command = (
-            "mkdir -p sourcedata && "
-            "cd sourcedata && "
-            "datalad install git@github.com:courtois-neuromod/mario && "
-            "cd mario && "
-            "datalad get */*/*/*.bk2 && "
-            "datalad get */*/*/*.tsv && "
-            "rm -rf stimuli && "
-            "datalad install git@github.com:courtois-neuromod/mario.stimuli && "
-            "mv mario.stimuli stimuli && "
-            "cd stimuli && "
-            "git checkout scenes_states && "
-            "datalad get ."
-        )
-        c.run(command, pty=True)
-        print("✅ Mario dataset setup complete!")
-    else:
-        print("⚠️  Please manually download the Mario dataset and place it in sourcedata/mario")
+    command = (
+        f"source {BASE_DIR}/env/bin/activate && "
+        "mkdir -p sourcedata && "
+        "cd sourcedata && "
+        "datalad install git@github.com:courtois-neuromod/mario && "
+        "cd mario && "
+        "git checkout events && "
+        "datalad get */*/*/*.bk2 && "
+        "datalad get */*/*/*.tsv && "
+        "rm -rf stimuli && "
+        "datalad install git@github.com:courtois-neuromod/mario.stimuli && "
+        "mv mario.stimuli stimuli && "
+        "cd stimuli && "
+        "git checkout scenes_states && "
+        "datalad get ."
+    )
+    c.run(command)
 
 
 @task
-def setup_env(c, compute_cluster=None):
-    """
-    Set up the Python environment for mario.scenes.
+def get_scenes_data(c):
+    """📊 Download scene metadata and background images from Zenodo.
+
+    Downloads and extracts:
+    - scenes_mastersheet.csv: Scene boundary definitions and layouts
+    - scenes_mastersheet.json: Same data in JSON format
+    - mario_scenes_manual_annotation.pdf: Annotation documentation
+    - level_backgrounds/: Background images for each level
+    - scene_backgrounds/: Background images for individual scenes
+
+    All files are saved to sourcedata/scenes_info/ and sourcedata/*_backgrounds/.
 
     Parameters
     ----------
     c : invoke.Context
-        The Invoke context.
-    compute_cluster : str, optional
-        Name of compute cluster (e.g., "beluga") for cluster-specific setup.
-        Default: None (standard setup).
+        The Invoke context object.
 
     Examples
     --------
-    Standard setup:
     ```bash
-    invoke setup-env
+    invoke get-scenes-data
     ```
 
-    Beluga cluster setup:
-    ```bash
-    invoke setup-env --compute-cluster beluga
-    ```
+    Notes
+    -----
+    This must be run before other analysis tasks that depend on scene definitions.
+    Downloads from Zenodo record 15586709.
     """
-    print("🐍 Setting up mario.scenes environment...")
+    c.run("mkdir -p sourcedata/scenes_info")
+    c.run('wget "https://zenodo.org/records/15586709/files/mario_scenes_manual_annotation.pdf?download=1" -O sourcedata/scenes_info/mario_scenes_manual_annotation.pdf')
+    c.run('wget "https://zenodo.org/records/15586709/files/scenes_mastersheet.json?download=1" -O sourcedata/scenes_info/scenes_mastersheet.json')
+    c.run('wget "https://zenodo.org/records/15586709/files/scenes_mastersheet.csv?download=1" -O sourcedata/scenes_info/scenes_mastersheet.csv')
+    c.run('wget "https://zenodo.org/records/15586709/files/scene_backgrounds.tar.gz?download=1" -O sourcedata/scene_backgrounds.tar.gz')
+    c.run('wget "https://zenodo.org/records/15586709/files/level_backgrounds.tar.gz?download=1" -O sourcedata/level_backgrounds.tar.gz')
+    c.run("tar -xvf sourcedata/scene_backgrounds.tar.gz -C sourcedata/")
+    c.run("tar -xvf sourcedata/level_backgrounds.tar.gz -C sourcedata/")
+    c.run("rm sourcedata/scene_backgrounds.tar.gz")
+    c.run("rm sourcedata/level_backgrounds.tar.gz")
 
-    if compute_cluster == "beluga":
-        print("📦 Setting up for Beluga compute cluster...")
-        c.run("module load python/3.10")
-        c.run("git clone https://github.com/farama-foundation/stable-retro.git", warn=True)
-        c.run("pip install -e stable-retro")
 
-    setup_env_python(c)
-    c.run("pip install -e .")
-    print("✅ Environment setup complete!")
+# ===============================
+# 🔬 Analysis & Processing
+# ===============================
+
+@task
+def dimensionality_reduction(c):
+    """📉 Apply dimensionality reduction to scene annotation features.
+
+    Reduces the 27-dimensional scene annotation feature space to 2D using three methods:
+    - PCA (Principal Component Analysis)
+    - UMAP (Uniform Manifold Approximation and Projection)
+    - t-SNE (t-distributed Stochastic Neighbor Embedding)
+
+    Results are saved as CSV files in outputs/dimensionality_reduction/.
+
+    Parameters
+    ----------
+    c : invoke.Context
+        The Invoke context object.
+
+    Examples
+    --------
+    ```bash
+    invoke dimensionality-reduction
+    ```
+
+    Notes
+    -----
+    Requires scene annotations to be available (run get-scenes-data first).
+    Output files: pca.csv, umap.csv, tsne.csv
+    """
+    c.run(f"python {BASE_DIR}/code/mario_scenes/scenes_analysis/dimensionality_reduction.py")
 
 
 @task
-def full_pipeline(c):
-    """
-    Run the full scene analysis pipeline.
+def cluster_scenes(c, n_clusters=None):
+    """🗂️ Perform hierarchical clustering on scene features.
 
-    This includes: dimensionality reduction, clustering, and clip extraction.
+    Groups scenes into clusters based on their annotation features using
+    hierarchical clustering with Ward linkage. Generates cluster assignments
+    and summary statistics for multiple cluster counts (default: 5-30).
+
+    Parameters
+    ----------
+    c : invoke.Context
+        The Invoke context object.
+    n_clusters : str, optional
+        Space-separated list of cluster counts to generate (e.g., "5 10 15 20").
+        If not provided, generates clusters for all values from 5 to 30.
+
+    Examples
+    --------
+    ```bash
+    invoke cluster-scenes
+    invoke cluster-scenes --n-clusters "10 15 20"
+    ```
+
+    Notes
+    -----
+    Output saved to outputs/cluster_scenes/hierarchical_clusters.pkl
+    """
+    if n_clusters is None:
+        cluster_arg = " ".join(str(i) for i in range(5, 31))
+    else:
+        cluster_arg = n_clusters
+    c.run(f"python {BASE_DIR}/code/mario_scenes/scenes_analysis/cluster_scenes.py --n_clusters {cluster_arg}")
+
+
+@task
+def create_clips(c, datapath="sourcedata/mario", output="outputdata/",
+                 subjects=None, sessions=None, n_jobs=-1, save_videos=True,
+                 video_format="mp4", simple=False):
+    """🎬 Extract scene clips from Mario replay files.
+
+    Processes .bk2 replay files to identify and extract individual scene clips,
+    saving them as video files, savestates, or ramdumps. Uses parallel processing
+    for efficiency.
+
+    Parameters
+    ----------
+    c : invoke.Context
+        The Invoke context object.
+    datapath : str, optional
+        Path to Mario dataset root directory. Default: "sourcedata/mario"
+    output : str, optional
+        Path for output derivatives. Default: "outputdata/"
+    subjects : str, optional
+        Space-separated subject IDs to process (e.g., "sub-01 sub-02").
+        If None, processes all subjects.
+    sessions : str, optional
+        Space-separated session IDs to process (e.g., "ses-001 ses-002").
+        If None, processes all sessions.
+    n_jobs : int, optional
+        Number of parallel jobs. Default: -1 (use all cores)
+    save_videos : bool, optional
+        Whether to save video files. Default: True
+    video_format : str, optional
+        Video format to save: "mp4", "gif", or "webp". Default: "mp4"
+    simple : bool, optional
+        Use simplified game version. Default: False
+
+    Examples
+    --------
+    ```bash
+    invoke create-clips
+    invoke create-clips --subjects "sub-01 sub-02" --video-format gif
+    invoke create-clips --n-jobs 4 --simple
+    ```
+
+    Notes
+    -----
+    Output follows BIDS structure: sub-{sub}/ses-{ses}/beh/
+    Generates JSON sidecars with metadata for each clip.
+    """
+    cmd = f"python {BASE_DIR}/code/mario_scenes/create_clips/create_clips.py -d {datapath} -o {output} -nj {n_jobs}"
+    if save_videos:
+        cmd += " --save_videos"
+    cmd += f" --video_format {video_format}"
+    if subjects:
+        cmd += f" --subjects {subjects}"
+    if sessions:
+        cmd += f" --sessions {sessions}"
+    if simple:
+        cmd += " --simple"
+    c.run(cmd)
+
+
+@task
+def make_scene_images(c, data_path=None, subjects="all", level=None, simple=False):
+    """🖼️ Generate background images for levels and scenes.
+
+    Processes replay files to create canonical background images by averaging
+    pixel columns across multiple playthroughs. Generates both full level
+    backgrounds and individual scene backgrounds.
+
+    Parameters
+    ----------
+    c : invoke.Context
+        The Invoke context object.
+    data_path : str, optional
+        Path to Mario dataset. If None, uses sourcedata/mario.
+    subjects : str, optional
+        Subjects to include in averaging. Default: "all"
+    level : str, optional
+        Specific level to process (e.g., "w1l1"). If None, processes all levels.
+    simple : bool, optional
+        Use simplified game version. Default: False
+
+    Examples
+    --------
+    ```bash
+    invoke make-scene-images
+    invoke make-scene-images --level w1l1 --subjects sub-03
+    invoke make-scene-images --simple
+    ```
+
+    Notes
+    -----
+    Outputs saved to sourcedata/level_backgrounds/ and sourcedata/scene_backgrounds/
+    """
+    cmd = f"python {BASE_DIR}/code/mario_scenes/make_images/make_scene_img.py"
+    if data_path:
+        cmd += f" -d {data_path}"
+    if subjects != "all":
+        cmd += f" -s {subjects}"
+    if level:
+        cmd += f" -l {level}"
+    if simple:
+        cmd += " --simple"
+    c.run(cmd)
+
+
+# ===============================
+# 🔄 Workflows
+# ===============================
+
+@task
+def full_pipeline(c):
+    """🚀 Execute the complete mario.scenes analysis pipeline.
+
+    Runs all processing steps in sequence:
+    1. Download scene data and metadata (get-scenes-data)
+    2. Apply dimensionality reduction to features (dimensionality-reduction)
+    3. Generate hierarchical clusters (cluster-scenes)
+    4. Extract scene clips from replays (create-clips)
+
+    Parameters
+    ----------
+    c : invoke.Context
+        The Invoke context object.
 
     Examples
     --------
     ```bash
     invoke full-pipeline
     ```
+
+    Notes
+    -----
+    Assumes the Mario dataset is already downloaded (setup-mario-dataset).
+    This workflow may take several hours depending on dataset size and hardware.
     """
-    print("🚀 Running full mario.scenes pipeline...")
-    dimensionality_reduction(c)
-    cluster_scenes(c)
-    create_clips(c)
-    print("✅ Full pipeline complete!")
+    c.run("invoke get-scenes-data dimensionality-reduction cluster-scenes create-clips")

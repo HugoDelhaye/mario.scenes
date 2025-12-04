@@ -18,11 +18,9 @@ from tqdm_joblib import tqdm_joblib
 import traceback
 from mario_scenes.load_data import load_scenes_info
 # Import general-purpose functions directly from videogames.utils
-from cneuromod_vg_utils.video import make_mp4, make_gif, make_webp
-from cneuromod_vg_utils.replay import get_variables_from_replay
-# Import mario-specific functions from mario_replays
-from mario_replays.utils import create_sidecar_dict
-from mario_replays.load_data import collect_bk2_files
+from videogames.utils.video import make_mp4, make_gif, make_webp
+from videogames.utils.replay import get_variables_from_replay
+from videogames.utils.metadata import collect_bk2_files, create_sidecar_dict
 
 
 def prune_variables(variables, start_idx, end_idx):
@@ -263,7 +261,6 @@ def process_bk2_file(bk2_info, args, scenes_info_dict, DATA_PATH, OUTPUT_FOLDER,
                     processing_stats["clips_processed"] += 1
 
                 except Exception as e:
-                    error_logs.append(f"Error processing clip {clip_code}: {str(e)}")
                     error_logs.append(f"Error processing clip {clip_code}: {str(e)}")
                     processing_stats["errors"] += 1
 

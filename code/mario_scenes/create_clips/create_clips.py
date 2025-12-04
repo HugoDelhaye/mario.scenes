@@ -41,7 +41,7 @@ def merge_metadata(additional_fields, base_dict):
 
 def get_rep_order(ses, run, bk2_idx):
     """Generate repetition order string from session, run, and bk2 index."""
-    return f"{str(ses).zfill(3)}{str(run).zfill(2)}{str(bk2_idx).zfill(2)}"
+    return f"{int(ses):03d}{int(run):02d}{int(bk2_idx):02d}"
 
 
 def _compute_player_x_pos(pos_hi, pos_lo):
@@ -163,7 +163,7 @@ def _save_clip_outputs(paths, frames, states, audio_track, audio_rate,
         if args.video_format == "gif":
             make_gif(frames, paths["gif"])
         elif args.video_format == "mp4":
-            make_mp4(frames, paths["mp4"], audio_track, audio_rate)
+            make_mp4(frames, paths["mp4"], audio=audio_track, sample_rate=audio_rate)
         elif args.video_format == "webp":
             make_webp(frames, paths["webp"])
 
@@ -286,7 +286,7 @@ def _setup_paths(args):
 
     stimuli_path = (op.abspath(args.stimuli)
                    if args.stimuli
-                   else op.abspath(op.join(data_path, "stimuli")))
+                   else op.abspath(op.join(data_path, "mario.stimuli")))
 
     return data_path, output_folder, stimuli_path
 

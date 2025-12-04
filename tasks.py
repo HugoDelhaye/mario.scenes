@@ -7,7 +7,7 @@ following airoh pipeline conventions for task organization and documentation.
 Available Tasks:
     Setup & Configuration:
         - setup-env: Create virtual environment and install dependencies
-        - setup-env-on-beluga: HPC-specific environment setup for Compute Canada
+        - setup-env-on-hpc: HPC-specific environment setup for computing clusters
         - setup-mario-dataset: Download and configure Mario dataset via datalad
         - get-scenes-data: Download scene metadata and background images from Zenodo
 
@@ -66,12 +66,12 @@ def setup_env(c):
 
 
 @task
-def setup_env_on_beluga(c):
-    """🖥️ Set up environment on Compute Canada Beluga HPC cluster.
+def setup_env_on_hpc(c):
+    """🖥️ Set up environment on HPC computing clusters.
 
-    Configures the environment on Beluga with specific Python module loading
-    and stable-retro installation from source. This task is tailored for the
-    Compute Canada HPC environment.
+    Configures the environment on HPC systems with specific Python module loading
+    and stable-retro installation from source. This task is tailored for HPC
+    environments with module systems (e.g., Compute Canada, SLURM clusters).
 
     Parameters
     ----------
@@ -81,13 +81,13 @@ def setup_env_on_beluga(c):
     Examples
     --------
     ```bash
-    invoke setup-env-on-beluga
+    invoke setup-env-on-hpc
     ```
 
     Notes
     -----
-    This task assumes you're running on Compute Canada's Beluga cluster with
-    access to the module system and git repositories.
+    This task assumes you're running on an HPC cluster with access to the
+    module system and git repositories.
     """
     c.run("module load python/3.10 && "
           f"python -m venv {BASE_DIR}/env && "
@@ -96,7 +96,7 @@ def setup_env_on_beluga(c):
           "cd ../../../.. && "
           "source ./mario_scenes_env/bin/activate && "
           "pip install -e mario_scenes_env/lib/python3.10/site-packages/stable-retro/. && "
-          "pip install -r requirements_beluga.txt && "
+          "pip install -r requirements_hpc.txt && "
           "pip install -e .")
 
 

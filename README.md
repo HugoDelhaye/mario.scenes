@@ -34,11 +34,11 @@ invoke get-scenes-data
 invoke setup-mario-dataset
 ```
 
-**HPC Setup (Compute Canada):**
+**HPC Setup (computing clusters):**
 
 ```bash
 pip install invoke
-invoke setup-env-on-beluga
+invoke setup-env-on-hpc
 ```
 
 ## Quick Start
@@ -222,7 +222,7 @@ Filename format: `sub-{subject}_ses-{session}_run-{run}_level-{level}_scene-{sce
 | Task                       | Description                                         |
 | -------------------------- | --------------------------------------------------- |
 | `setup-env`                | Create virtual environment and install dependencies |
-| `setup-env-on-beluga`      | HPC-specific environment setup                      |
+| `setup-env-on-hpc`         | HPC-specific environment setup                      |
 | `setup-mario-dataset`      | Download Mario dataset via datalad                  |
 | `get-scenes-data`          | Download scene metadata from Zenodo                 |
 | `dimensionality-reduction` | Apply PCA, UMAP, t-SNE to annotations               |

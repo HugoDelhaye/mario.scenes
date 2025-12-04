@@ -142,7 +142,6 @@ def _build_clip_metadata(sub, ses, run, level, scene, clip_code, start_idx,
 def _load_replay_sidecar(replays_path, sub, ses, bk2_filename):
     """Load replay metadata JSON if available."""
     if replays_path is None:
-        logging.warning("Replay path not provided, skipping repetition sidecar.")
         return {}
 
     replay_path = op.join(replays_path, f"sub-{sub}", f"ses-{ses}", "beh",
@@ -364,6 +363,18 @@ def main(args):
 
     scenes_info = load_scenes_info(format="dict")
     bk2_files = collect_bk2_files(data_path, args.subjects, args.sessions)
+
+    if args.replays_path is None:
+        logging.warning(
+            "\n⚠️  No replay metadata path provided (--replays_path).\n"
+            "   Scene clips will contain basic scene-level metadata only.\n"
+            "   For enriched metadata with replay-level statistics (score, enemies killed, etc.),\n"
+            "   first run mario.replays to generate replay-level metadata:\n"
+            "     cd ../mario.replays && invoke create-replays --save-variables\n"
+            "   Then re-run create-clips with: --replays-path <path_to_replays_output>\n"
+        )
+    else:
+        logging.info(f"Using replay metadata from: {args.replays_path}")
 
     logging.info(f"Processing {len(bk2_files)} bk2 files using {args.n_jobs} job(s)...")
 

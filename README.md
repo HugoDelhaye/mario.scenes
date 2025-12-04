@@ -15,6 +15,7 @@ Scenes are atomic gameplay segments with consistent mechanics (e.g., "gap with e
 
 This package is a companion to [cneuromod.mario](https://github.com/courtois-neuromod/mario) and integrates with:
 
+- [mario.replays](https://github.com/courtois-neuromod/mario.replays) - Extract replay-level metadata (recommended for enriched clip metadata)
 - [mario.annotations](https://github.com/courtois-neuromod/mario.annotations)
 - [mario_learning](https://github.com/courtois-neuromod/mario_learning)
 - [mario_curiosity.scene_agents](https://github.com/courtois-neuromod/mario_curiosity.scene_agents)
@@ -54,6 +55,21 @@ invoke create-clips --datapath sourcedata/mario --output outputdata/ \
 
 # Process specific subjects/sessions with parallel jobs
 invoke create-clips --subjects sub-01 sub-02 --sessions ses-001 --n-jobs 8
+
+# Save additional outputs (savestates, variables, ramdumps)
+invoke create-clips --save-states --save-variables --save-ramdumps
+```
+
+**Enhanced metadata with mario.replays**: For richer metadata including replay-level statistics (score gained, enemies killed, coins collected, etc.), first process replays with [mario.replays](https://github.com/courtois-neuromod/mario.replays):
+
+```bash
+# Generate replay-level metadata (in mario.replays directory)
+cd ../mario.replays
+invoke create-replays --save-variables --output outputdata/replays
+
+# Then use this data when extracting clips (back in mario.scenes)
+cd ../mario.scenes
+invoke create-clips --replays-path ../mario.replays/outputdata/replays
 ```
 
 **Output**: BIDS-structured directories with videos, savestates, and JSON metadata:
@@ -63,6 +79,7 @@ outputdata/scene_clips/
 └── sub-01/ses-001/beh/
     ├── videos/sub-01_ses-001_run-01_level-w1l1_scene-1_clip-*.mp4
     ├── savestates/sub-01_ses-001_run-01_level-w1l1_scene-1_clip-*.state
+    ├── variables/sub-01_ses-001_run-01_level-w1l1_scene-1_clip-*.json
     └── infos/sub-01_ses-001_run-01_level-w1l1_scene-1_clip-*.json
 ```
 
@@ -238,6 +255,7 @@ Run `invoke --list` for full options.
 - **Dataset**: [Courtois NeuroMod](https://docs.cneuromod.ca/)
 - **Scene Definitions**: [Zenodo Record 15586709](https://zenodo.org/records/15586709)
 - **Related Packages**:
+    - [mario.replays](https://github.com/courtois-neuromod/mario.replays) - Replay-level metadata extraction (use with --replays-path for enriched scene metadata)
     - [videogames.utils](https://github.com/courtois-neuromod/videogames.utils) - Replay processing utilities
     - [airoh](https://github.com/airoh-pipeline/airoh) - Reproducible workflow framework
 

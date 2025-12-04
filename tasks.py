@@ -258,12 +258,14 @@ def cluster_scenes(c, n_clusters=None):
 @task
 def create_clips(c, datapath="sourcedata/mario", output="outputdata/",
                  subjects=None, sessions=None, n_jobs=-1, save_videos=True,
-                 video_format="mp4", simple=False):
+                 save_variables=False, save_states=False, save_ramdumps=False,
+                 video_format="mp4", simple=False, replays_path=None,
+                 stimuli=None, verbose=0):
     """🎬 Extract scene clips from Mario replay files.
 
     Processes .bk2 replay files to identify and extract individual scene clips,
-    saving them as video files, savestates, or ramdumps. Uses parallel processing
-    for efficiency.
+    saving them as video files, savestates, ramdumps, or variables. Uses parallel
+    processing for efficiency.
 
     Parameters
     ----------
@@ -283,16 +285,31 @@ def create_clips(c, datapath="sourcedata/mario", output="outputdata/",
         Number of parallel jobs. Default: -1 (use all cores)
     save_videos : bool, optional
         Whether to save video files. Default: True
+    save_variables : bool, optional
+        Whether to save game variables as JSON. Default: False
+    save_states : bool, optional
+        Whether to save savestates (gzipped RAM at clip start). Default: False
+    save_ramdumps : bool, optional
+        Whether to save full RAM dumps per frame. Default: False
     video_format : str, optional
         Video format to save: "mp4", "gif", or "webp". Default: "mp4"
     simple : bool, optional
         Use simplified game version. Default: False
+    replays_path : str, optional
+        Path to mario.replays output to enrich metadata with replay-level info.
+        If not provided, clips will have scene-level metadata only.
+    stimuli : str, optional
+        Path to stimuli folder containing game ROMs. If not specified,
+        defaults to <datapath>/stimuli.
+    verbose : int, optional
+        Verbosity level (0=WARNING, 1=INFO, 2+=DEBUG). Default: 0
 
     Examples
     --------
     ```bash
     invoke create-clips
     invoke create-clips --subjects "sub-01 sub-02" --video-format gif
+    invoke create-clips --save-states --save-variables --replays-path outputdata/replays
     invoke create-clips --n-jobs 4 --simple
     ```
 
@@ -300,10 +317,21 @@ def create_clips(c, datapath="sourcedata/mario", output="outputdata/",
     -----
     Output follows BIDS structure: sub-{sub}/ses-{ses}/beh/
     Generates JSON sidecars with metadata for each clip.
+
+    For enriched metadata, first run mario.replays:
+        cd ../mario.replays && invoke create-replays --save-variables
+    Then pass the output path via --replays-path to include replay-level
+    statistics (score gained, enemies killed, etc.) in clip metadata.
     """
     cmd = f"python {BASE_DIR}/code/mario_scenes/create_clips/create_clips.py -d {datapath} -o {output} -nj {n_jobs}"
     if save_videos:
         cmd += " --save_videos"
+    if save_variables:
+        cmd += " --save_variables"
+    if save_states:
+        cmd += " --save_states"
+    if save_ramdumps:
+        cmd += " --save_ramdumps"
     cmd += f" --video_format {video_format}"
     if subjects:
         cmd += f" --subjects {subjects}"
@@ -311,6 +339,12 @@ def create_clips(c, datapath="sourcedata/mario", output="outputdata/",
         cmd += f" --sessions {sessions}"
     if simple:
         cmd += " --simple"
+    if replays_path:
+        cmd += f" --replays_path {replays_path}"
+    if stimuli:
+        cmd += f" --stimuli {stimuli}"
+    if verbose > 0:
+        cmd += " " + "-v" * verbose
     c.run(cmd)
 
 

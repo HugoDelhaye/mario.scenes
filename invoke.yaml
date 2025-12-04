@@ -1,0 +1,33 @@
+# Configuration for mario.scenes project
+
+# Dataset paths
+mario_dataset: sourcedata/mario
+replays_dataset: ../mario.replays/outputdata/replays
+scenes_info_dir: sourcedata/scenes_info
+output_dir: outputdata/mario_scenes
+
+# Game configuration
+game_name: SuperMarioBros-Nes
+game_name_simple: SuperMarioBrosSimple-Nes
+stimuli_path: sourcedata/mario/stimuli
+
+# Processing options
+n_jobs: -1  # Use all available CPU cores
+save_videos: false
+save_images: true
+video_format: mp4  # Options: mp4, gif, webp
+
+# Clustering options
+n_clusters_min: 5
+n_clusters_max: 30
+
+# Python environment
+requirements_file: requirements.txt
+
+# Zenodo URLs for scene data
+zenodo_record: "15586709"
+scenes_pdf_url: "https://zenodo.org/records/15586709/files/mario_scenes_manual_annotation.pdf?download=1"
+scenes_json_url: "https://zenodo.org/records/15586709/files/scenes_mastersheet.json?download=1"
+scenes_csv_url: "https://zenodo.org/records/15586709/files/scenes_mastersheet.csv?download=1"
+scene_backgrounds_url: "https://zenodo.org/records/15586709/files/scene_backgrounds.tar.gz?download=1"
+level_backgrounds_url: "https://zenodo.org/records/15586709/files/level_backgrounds.tar.gz?download=1"

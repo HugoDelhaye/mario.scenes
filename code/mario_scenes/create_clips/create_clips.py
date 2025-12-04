@@ -15,113 +15,182 @@ from tqdm import tqdm
 from tqdm_joblib import tqdm_joblib
 import traceback
 from mario_scenes.load_data import load_scenes_info
-from mario_replays.utils import (
-    replay_bk2,
-    get_variables_from_replay,
-    make_mp4,
-    make_gif,
-    make_webp,
-    create_sidecar_dict,
-)
+# Import general-purpose functions directly from videogames.utils
+from cneuromod_vg_utils.video import make_mp4, make_gif, make_webp
+from cneuromod_vg_utils.replay import get_variables_from_replay
+# Import mario-specific functions from mario_replays
+from mario_replays.utils import create_sidecar_dict
 from mario_replays.load_data import collect_bk2_files
 
 
 def prune_variables(variables, start_idx, end_idx):
-    """
-    Prune variables to the specified frame range.
-    """
-    pruned_variables = {}
+    """Slice list/array variables to frame range, copy scalars."""
+    pruned = {}
     for key, value in variables.items():
-        if isinstance(value, (list, np.ndarray)):
-            pruned_variables[key] = value[start_idx:end_idx]
-        else:
-            pruned_variables[key] = value
-    return pruned_variables
+        pruned[key] = value[start_idx:end_idx] if isinstance(value, (list, np.ndarray)) else value
+    return pruned
 
 
 def merge_metadata(additional_fields, base_dict):
-    """
-    Add to base_dict only the key-value pairs from additional_fields that are not already present in base_dict.
-    """
+    """Add fields from additional_fields to base_dict if not already present."""
     for key, value in additional_fields.items():
         if key not in base_dict:
             base_dict[key] = value
     return base_dict
 
 def get_rep_order(ses, run, bk2_idx):
-    """
-    Generate a string representing the repetition order based on subject, session, run, and bk2 index.
-    """
+    """Generate repetition order string from session, run, and bk2 index."""
     return f"{str(ses).zfill(3)}{str(run).zfill(2)}{str(bk2_idx).zfill(2)}"
 
-def cut_scene_clips(repetition_variables, rep_order_string, scene_bounds):
 
-    bk2_file = repetition_variables["filename"]
+def _compute_player_x_pos(pos_hi, pos_lo):
+    """Compute full x position from high and low byte arrays."""
+    return [hi * 256 + lo for hi, lo in zip(pos_hi, pos_lo)]
+
+
+def _is_scene_entry(x_pos_curr, x_pos_prev, scene_start, scene_end, layout_curr, layout_target):
+    """Check if player just entered the scene."""
+    crossed_start = x_pos_curr >= scene_start and x_pos_prev < scene_start
+    within_scene = x_pos_curr < scene_end
+    correct_layout = layout_curr == layout_target
+    return crossed_start and within_scene and correct_layout
+
+
+def _is_scene_exit(x_pos_curr, x_pos_prev, scene_end):
+    """Check if player crossed scene end boundary."""
+    return x_pos_curr >= scene_end and x_pos_prev < scene_end
+
+
+def _is_death(lives_curr, lives_prev):
+    """Check if player died (life count decreased)."""
+    return lives_curr - lives_prev < 0
+
+
+def cut_scene_clips(repetition_variables, rep_order_string, scene_bounds):
+    """
+    Extract clip boundaries for a scene from replay variables.
+
+    Detects when player enters and exits the scene based on x position
+    and level layout. A clip ends when player exits the scene or dies.
+    Multiple clips can be found if player re-enters the scene.
+
+    Returns dict mapping clip codes to (start_frame, end_frame) tuples.
+    """
+    x_pos = _compute_player_x_pos(
+        repetition_variables["player_x_posHi"],
+        repetition_variables["player_x_posLo"]
+    )
 
     clips_found = {}
-    repetition_variables["player_x_pos"] = [
-        hi * 256 + lo
-        for hi, lo in zip(
-            repetition_variables["player_x_posHi"],
-            repetition_variables["player_x_posLo"],
-        )
-    ]
-    n_frames_total = len(repetition_variables["player_x_pos"])
-
-    scene_start = scene_bounds["start"]
-    scene_end = scene_bounds["end"]
-    level_layout = scene_bounds["level_layout"]
-
     start_found = False
-    for frame_idx in range(1, n_frames_total):
+    start_idx = None
+
+    for frame_idx in range(1, len(x_pos)):
+        x_curr, x_prev = x_pos[frame_idx], x_pos[frame_idx - 1]
+        layout_curr = repetition_variables["level_layout"][frame_idx]
+        lives_curr = repetition_variables["lives"][frame_idx]
+        lives_prev = repetition_variables["lives"][frame_idx - 1]
+
         if not start_found:
-            if (
-                repetition_variables["player_x_pos"][frame_idx] >= scene_start
-                and repetition_variables["player_x_pos"][frame_idx - 1]
-                < scene_start
-                and repetition_variables["player_x_pos"][frame_idx] < scene_end
-                and repetition_variables["level_layout"][frame_idx]
-                == level_layout
-            ):
+            if _is_scene_entry(x_curr, x_prev, scene_bounds["start"],
+                             scene_bounds["end"], layout_curr,
+                             scene_bounds["level_layout"]):
                 start_idx = frame_idx
                 start_found = True
         else:
-            if (
-                repetition_variables["player_x_pos"][frame_idx] >= scene_end
-                and repetition_variables["player_x_pos"][frame_idx - 1]
-                < scene_end
-            ) or (
-                repetition_variables["lives"][frame_idx]
-                - repetition_variables["lives"][frame_idx - 1]
-                < 0
-            ):
-                end_idx = frame_idx
-                start_found = False
+            if _is_scene_exit(x_curr, x_prev, scene_bounds["end"]) or _is_death(lives_curr, lives_prev):
                 clip_code = f"{rep_order_string}{str(start_idx).zfill(7)}"
-                clips_found[clip_code] = (start_idx, end_idx)
-            elif (
-                repetition_variables["player_x_pos"][frame_idx] >= scene_start
-                and repetition_variables["player_x_pos"][frame_idx - 1]
-                < scene_start
-            ):
+                clips_found[clip_code] = (start_idx, frame_idx)
+                start_found = False
+            elif _is_scene_entry(x_curr, x_prev, scene_bounds["start"],
+                               scene_bounds["end"], layout_curr,
+                               scene_bounds["level_layout"]):
                 start_idx = frame_idx
 
     return clips_found
 
 
-def process_bk2_file(
-    bk2_info, args, scenes_info_dict, DATA_PATH, OUTPUT_FOLDER, STIMULI_PATH
-):
+def _build_clip_paths(output_folder, sub, ses, run, level, scene, clip_code):
+    """Construct BIDS-compliant file paths for all clip outputs."""
+    beh_folder = op.join(output_folder, f"sub-{sub}", f"ses-{ses}", "beh")
+    entities = f"sub-{sub}_ses-{ses}_run-{run}_level-{level}_scene-{scene}_clip-{clip_code}"
+
+    return {
+        "gif": op.join(beh_folder, "videos", f"{entities}.gif"),
+        "mp4": op.join(beh_folder, "videos", f"{entities}.mp4"),
+        "webp": op.join(beh_folder, "videos", f"{entities}.webp"),
+        "savestate": op.join(beh_folder, "savestates", f"{entities}.state"),
+        "ramdump": op.join(beh_folder, "ramdumps", f"{entities}.npz"),
+        "json": op.join(beh_folder, "infos", f"{entities}.json"),
+        "variables": op.join(beh_folder, "variables", f"{entities}.json"),
+        "entities": entities
+    }
+
+
+def _build_clip_metadata(sub, ses, run, level, scene, clip_code, start_idx,
+                         end_idx, total_frames, bk2_file, game_name, level_full, scene_full):
+    """Build base metadata dictionary for a clip."""
+    return {
+        "Subject": sub, "Session": ses, "Run": run, "Level": level,
+        "Scene": scene, "ClipCode": clip_code, "StartFrame": start_idx,
+        "EndFrame": end_idx, "TotalFrames": total_frames, "Bk2File": bk2_file,
+        "GameName": game_name, "LevelFullName": level_full, "SceneFullName": scene_full
+    }
+
+
+def _load_replay_sidecar(replays_path, sub, ses, bk2_filename):
+    """Load replay metadata JSON if available."""
+    if replays_path is None:
+        logging.warning("Replay path not provided, skipping repetition sidecar.")
+        return {}
+
+    replay_path = op.join(replays_path, f"sub-{sub}", f"ses-{ses}", "beh",
+                          "infos", bk2_filename.replace(".bk2", ".json"))
+
+    if not os.path.exists(replay_path):
+        logging.warning(f"Replay file not found: {replay_path}")
+        return {}
+
+    with open(replay_path, "r") as f:
+        return json.load(f)
+
+
+def _save_clip_outputs(paths, frames, states, audio_track, audio_rate,
+                      start_idx, end_idx, variables, args):
+    """Save requested output files for a clip."""
+    if args.save_videos:
+        os.makedirs(os.path.dirname(paths["mp4"]), exist_ok=True)
+        if args.video_format == "gif":
+            make_gif(frames, paths["gif"])
+        elif args.video_format == "mp4":
+            make_mp4(frames, paths["mp4"], audio_track, audio_rate)
+        elif args.video_format == "webp":
+            make_webp(frames, paths["webp"])
+
+    if args.save_states:
+        os.makedirs(os.path.dirname(paths["savestate"]), exist_ok=True)
+        with gzip.open(paths["savestate"], "wb") as fh:
+            fh.write(states[start_idx])
+
+    if args.save_ramdumps:
+        os.makedirs(os.path.dirname(paths["ramdump"]), exist_ok=True)
+        np.savez_compressed(paths["ramdump"], states[start_idx:end_idx])
+
+    if args.save_variables:
+        os.makedirs(os.path.dirname(paths["variables"]), exist_ok=True)
+        with open(paths["variables"], "w") as f:
+            json.dump(variables, f)
+
+
+def process_bk2_file(bk2_info, args, scenes_info_dict, DATA_PATH, OUTPUT_FOLDER, STIMULI_PATH):
     """
-    Process a single bk2 file to extract clips, saving only the requested file types:
-    - savestate (.state)
-    - ramdump (.npz)
-    - gif (.gif)
-    - mp4 (.mp4)
-    - webp (.webp)
-    - json (.json)
+    Process a single bk2 replay file to extract and save scene clips.
+
+    Runs the replay, detects scene boundaries, and saves requested outputs
+    (videos, savestates, ramdumps, variables) along with BIDS metadata.
+
+    Returns (error_logs, processing_stats) for aggregation by main process.
     """
-    # Add stimuli path in each child process
     retro.data.Integrations.add_custom_path(STIMULI_PATH)
 
     error_logs = []
@@ -134,290 +203,181 @@ def process_bk2_file(
 
     try:
         bk2_file = bk2_info["bk2_file"]
-        bk2_idx = bk2_info["bk2_idx"]
-        sub = bk2_info["sub"]
-        ses = bk2_info["ses"]
-        run = bk2_info["run"]
-        skip_first_step = bk2_idx == 0
-
         logging.info(f"Processing bk2 file: {bk2_file}")
-        rep_order_string = get_rep_order(ses, run, bk2_idx)
 
-        # Run replay
-        repetition_variables, replay_info, frames_list, replay_states = (
-            get_variables_from_replay(
-                op.join(DATA_PATH, bk2_file),
-                skip_first_step=skip_first_step,
-                game=args.game_name,
-                inttype=retro.data.Integrations.CUSTOM_ONLY,
-            )
+        rep_order = get_rep_order(bk2_info["ses"], bk2_info["run"], bk2_info["bk2_idx"])
+
+        rep_vars, _, frames, states, audio, audio_rate = get_variables_from_replay(
+            op.join(DATA_PATH, bk2_file),
+            skip_first_step=(bk2_info["bk2_idx"] == 0),
+            game=args.game_name,
+            inttype=retro.data.Integrations.CUSTOM_ONLY,
         )
 
         curr_level = op.basename(bk2_file).split("_")[-2].split("-")[1]
-        scenes_in_current_level = [
-            x for x in scenes_info_dict.keys() if curr_level in x
-        ]
-        for current_scene in scenes_in_current_level:
+        scenes_in_level = [s for s in scenes_info_dict.keys() if curr_level in s]
 
-            scene_bounds = {'start': scenes_info_dict[current_scene]['start'],
-                            'end': scenes_info_dict[current_scene]['end'],
-                            'level_layout': scenes_info_dict[current_scene]['level_layout']}
+        for scene_name in scenes_in_level:
+            scene_bounds = {
+                'start': scenes_info_dict[scene_name]['start'],
+                'end': scenes_info_dict[scene_name]['end'],
+                'level_layout': scenes_info_dict[scene_name]['level_layout']
+            }
 
-            clips_found = cut_scene_clips(
-                repetition_variables,
-                rep_order_string,
-                scene_bounds,
-            )
+            clips_found = cut_scene_clips(rep_vars, rep_order, scene_bounds)
 
-            for clip_code in clips_found:
-                start_idx, end_idx = clips_found[clip_code]
-
-                selected_frames = frames_list[start_idx:end_idx]
-
+            for clip_code, (start_idx, end_idx) in clips_found.items():
                 assert len(clip_code) == 14, f"Invalid clip code: {clip_code}"
 
-                # Construct BIDS-compliant paths
-                sub_folder = op.join(OUTPUT_FOLDER, f"sub-{sub}")
-                ses_folder = op.join(sub_folder, f"ses-{ses}")
-                beh_folder = op.join(ses_folder, "beh")
+                scene_num = int(scene_name.split('s')[1])
+                paths = _build_clip_paths(OUTPUT_FOLDER, bk2_info["sub"], bk2_info["ses"],
+                                        bk2_info["run"], rep_vars['level'], scene_num, clip_code)
 
-                entities = (
-                    f"sub-{sub}_ses-{ses}_run-{run}_level-{repetition_variables['level']}_"
-                    f"scene-{int(current_scene.split('s')[1])}_clip-{clip_code}"
+                metadata = _build_clip_metadata(
+                    bk2_info["sub"], bk2_info["ses"], bk2_info["run"], rep_vars["level"],
+                    scene_num, clip_code, start_idx, end_idx, len(rep_vars['score']),
+                    paths["entities"], args.game_name, curr_level, scene_name
                 )
 
-                # Prepare output filenames
-                gif_fname = op.join(beh_folder, "videos", f"{entities}.gif")
-                mp4_fname = op.join(beh_folder, "videos", f"{entities}.mp4")
-                webp_fname = op.join(beh_folder, "videos", f"{entities}.webp")
-                savestate_fname = op.join(beh_folder, "savestates", f"{entities}.state")
-                ramdump_fname = op.join(beh_folder, "ramdumps", f"{entities}.npz")
-                json_fname = op.join(beh_folder, "infos", f"{entities}.json")
-                variables_fname = op.join(beh_folder, "variables", f"{entities}.json")
-
-                metadata = {
-                    "Subject": sub,
-                    "Session": ses,
-                    "Run": run,
-                    "Level": repetition_variables["level"],
-                    "Scene": int(current_scene.split("s")[1]),
-                    "ClipCode": clip_code,
-                    "StartFrame": start_idx,
-                    "EndFrame": end_idx,
-                    "TotalFrames": len(repetition_variables['score']),
-                    "Bk2File": entities,
-                    "GameName": args.game_name,
-                    "LevelFullName": bk2_file.split("_")[-2].split("-")[1],
-                    "SceneFullName": current_scene,
-                }
-
-                scene_variables = prune_variables(
-                    repetition_variables, start_idx, end_idx
-                )
-                scene_variables["metadata"] = entities
-
-                scene_sidecar = create_sidecar_dict(scene_variables)
-
+                scene_vars = prune_variables(rep_vars, start_idx, end_idx)
+                scene_vars["metadata"] = paths["entities"]
+                scene_sidecar = create_sidecar_dict(scene_vars)
                 enriched_metadata = merge_metadata(metadata, scene_sidecar)
 
-                if args.replays_path is not None:
-                    replay_path = op.join(
-                        args.replays_path,
-                        f"sub-{sub}",
-                        f"ses-{ses}",
-                        "beh",
-                        "infos",
-                        bk2_file.split("/")[-1].replace(".bk2", ".json"),
-                    )
-                    if os.path.exists(replay_path):
-                        with open(replay_path, "r") as replay_file:
-                            replay_sidecar = json.load(replay_file)
-                            enriched_metadata = merge_metadata(
-                                replay_sidecar, enriched_metadata
-                            )
-                    else:
-                        logging.warning(f"Replay file not found: {replay_path}")
-                else:
-                    logging.warning(
-                        f"Replay path not provided, skipping repetition sidecar."
-                    )
+                replay_sidecar = _load_replay_sidecar(
+                    args.replays_path, bk2_info["sub"], bk2_info["ses"],
+                    bk2_file.split("/")[-1]
+                )
+                enriched_metadata = merge_metadata(replay_sidecar, enriched_metadata)
 
-                os.makedirs(os.path.dirname(json_fname), exist_ok=True)
-                with open(json_fname, "w") as json_file:
-                    json.dump(enriched_metadata, json_file, indent=4)
+                os.makedirs(os.path.dirname(paths["json"]), exist_ok=True)
+                with open(paths["json"], "w") as f:
+                    json.dump(enriched_metadata, f, indent=4)
 
-                # If nothing is needed for this clip, skip it.
                 if not any([args.save_states, args.save_ramdumps, args.save_videos]):
-                    logging.info(
-                        f"All requested files exist for clip code {clip_code}, skipping."
-                    )
                     processing_stats["clips_skipped"] += 1
                     continue
 
                 try:
-                    # Generate files
-                    if args.save_videos:
-                        os.makedirs(os.path.dirname(gif_fname), exist_ok=True)
-                        if args.video_format == "gif":
-                            make_gif(selected_frames, gif_fname)
-                        elif args.video_format == "mp4":
-                            make_mp4(selected_frames, mp4_fname)
-                        elif args.video_format == "webp":
-                            make_webp(selected_frames, webp_fname)
-
-                    if args.save_states:
-                        os.makedirs(os.path.dirname(savestate_fname), exist_ok=True)
-                        with gzip.open(savestate_fname, "wb") as fh:
-                            fh.write(replay_states[start_idx])
-                    if args.save_ramdumps:
-                        os.makedirs(os.path.dirname(ramdump_fname), exist_ok=True)
-                        np.savez_compressed(
-                            ramdump_fname, replay_states[start_idx:end_idx]
-                        )
-                    if args.save_variables:
-                        os.makedirs(os.path.dirname(variables_fname), exist_ok=True)
-                        with open(variables_fname, "w") as f:
-                            json.dump(scene_variables, f)
-
+                    _save_clip_outputs(paths, frames[start_idx:end_idx], states, audio,
+                                     audio_rate, start_idx, end_idx, scene_vars, args)
                     processing_stats["clips_processed"] += 1
 
                 except Exception as e:
-                    error_message = f"Error processing clip {clip_code} in bk2 file {bk2_file}: {str(e)}"
-                    error_logs.append(error_message)
+                    error_logs.append(f"Error processing clip {clip_code}: {str(e)}")
                     processing_stats["errors"] += 1
-                    continue
 
     except Exception as e:
-        bk2_file = bk2_info.get("bk2_file", "Unknown file")
-        error_message = f"Error processing bk2 file {bk2_file}: {str(e)}"
-        error_logs.append(error_message)
+        error_logs.append(f"Error processing bk2 file {bk2_info.get('bk2_file', 'Unknown')}: {str(e)}")
         processing_stats["errors"] += 1
-        print("Full traceback:")
         traceback.print_exc()
-        print("\nError message:")
-        print(e)
 
     return error_logs, processing_stats
 
 
-def main(args):
-    # Get datapath
-    DATA_PATH = op.abspath(args.datapath)
+def _setup_logging(verbose_level):
+    """Configure logging based on verbosity level."""
+    levels = {0: logging.WARNING, 1: logging.INFO}
+    level = levels.get(verbose_level, logging.DEBUG)
+    logging.basicConfig(level=level, format="%(levelname)s: %(message)s")
 
-    # Set up logging based on verbosity level
-    if args.verbose == 0:
-        logging_level = logging.WARNING
-    elif args.verbose == 1:
-        logging_level = logging.INFO
-    else:
-        logging_level = logging.DEBUG
-    logging.basicConfig(level=logging_level, format="%(levelname)s: %(message)s")
 
-    # If user provides --simple, use the simpler NES version
-    # and change pipeline folder name accordingly.
-    if args.simple:
-        args.game_name = "SuperMarioBrosSimple-Nes"
-        args.output_name = "scene_clips_simple"
-    else:
-        args.game_name = "SuperMarioBros-Nes"
-        args.output_name = "scene_clips"
+def _setup_paths(args):
+    """Setup and validate data/output/stimuli paths."""
+    data_path = op.abspath(args.datapath)
+    output_folder = op.join(op.abspath(args.output), args.output_name)
+    os.makedirs(output_folder, exist_ok=True)
 
-    # Load scenes
-    scenes_info_dict = load_scenes_info(format="dict")
+    stimuli_path = (op.abspath(args.stimuli)
+                   if args.stimuli
+                   else op.abspath(op.join(data_path, "stimuli")))
 
-    # Setup output folder
-    OUTPUT_FOLDER = op.join(op.abspath(args.output), args.output_name)
-    os.makedirs(OUTPUT_FOLDER, exist_ok=True)
+    return data_path, output_folder, stimuli_path
 
-    # Integrate game
-    if args.stimuli is None:
-        STIMULI_PATH = op.abspath(op.join(DATA_PATH, "stimuli"))
-    else:
-        STIMULI_PATH = op.abspath(args.stimuli_path)
 
-    logging.debug(f"Adding stimuli path: {STIMULI_PATH}")
-    retro.data.Integrations.add_custom_path(STIMULI_PATH)
-    games_list = retro.data.list_games(inttype=retro.data.Integrations.CUSTOM_ONLY)
-    logging.debug(f"Available games: {games_list}")
-    logging.info(f"Game to use: {args.game_name}")
-    logging.info(f"Output dataset name: {args.output_name}")
-    logging.info(f"Generating clips for the dataset in: {DATA_PATH}")
-    logging.info(f"Taking stimuli from: {STIMULI_PATH}")
-    logging.info(f"Saving derivatives in: {OUTPUT_FOLDER}")
-
-    # Collect all bk2 files and related information
-    bk2_files_info = collect_bk2_files(DATA_PATH, args.subjects, args.sessions)
-    total_bk2_files = len(bk2_files_info)
-
-    # Process bk2 files in parallel with progress bar
-    n_jobs = args.n_jobs
-    logging.info(f"Processing {total_bk2_files} bk2 files using {n_jobs} job(s)...")
-
-    with tqdm_joblib(tqdm(desc="Processing bk2 files", total=total_bk2_files)):
-        results = Parallel(n_jobs=n_jobs)(
-            delayed(process_bk2_file)(
-                bk2_info, args, scenes_info_dict, DATA_PATH, OUTPUT_FOLDER, STIMULI_PATH
-            )
-            for bk2_info in bk2_files_info
-        )
-
-    # Initialize aggregators
-    total_processing_stats = {
+def _aggregate_results(results, total_bk2_files):
+    """Aggregate processing statistics and error logs from parallel results."""
+    stats = {
         "total_bk2_files": total_bk2_files,
         "total_clips_processed": 0,
         "total_clips_skipped": 0,
         "total_errors": 0,
     }
-    all_error_logs = []
+    error_logs = []
 
-    # Aggregate results
-    for error_logs, processing_stats in results:
-        total_processing_stats["total_clips_processed"] += processing_stats.get(
-            "clips_processed", 0
-        )
-        total_processing_stats["total_clips_skipped"] += processing_stats.get(
-            "clips_skipped", 0
-        )
-        total_processing_stats["total_errors"] += processing_stats.get("errors", 0)
-        all_error_logs.extend(error_logs)
+    for logs, proc_stats in results:
+        stats["total_clips_processed"] += proc_stats.get("clips_processed", 0)
+        stats["total_clips_skipped"] += proc_stats.get("clips_skipped", 0)
+        stats["total_errors"] += proc_stats.get("errors", 0)
+        error_logs.extend(logs)
 
-    # Prepare data for saving: BIDS derivatives dataset_description
-    dataset_description = {
-        "Name": args.output_name,
+    return stats, error_logs
+
+
+def _save_dataset_metadata(output_folder, output_name, stats, error_logs):
+    """Save BIDS dataset description and processing log."""
+    dataset_desc = {
+        "Name": output_name,
         "BIDSVersion": "1.6.0",
-        "GeneratedBy": [
-            {
-                "Name": "Courtois Neuromod",
-                "Version": "1.0.0",
-                "CodeURL": "https://github.com/courtois-neuromod/mario.scenes/src/mario_scenes/clips_extraction/clip_extraction.py",
-            }
-        ],
+        "GeneratedBy": [{
+            "Name": "Courtois Neuromod",
+            "Version": "1.0.0",
+            "CodeURL": "https://github.com/courtois-neuromod/mario.scenes/src/mario_scenes/clips_extraction/clip_extraction.py",
+        }],
         "SourceDatasets": [{"URL": "https://github.com/courtois-neuromod/mario/"}],
         "License": "CC0",
     }
 
-    os.makedirs(OUTPUT_FOLDER, exist_ok=True)
-    with open(op.join(OUTPUT_FOLDER, "dataset_description.json"), "w") as f:
-        json.dump(dataset_description, f, indent=4)
+    with open(op.join(output_folder, "dataset_description.json"), "w") as f:
+        json.dump(dataset_desc, f, indent=4)
 
-    # Write error logs to a file
-    log_file = op.join(OUTPUT_FOLDER, "processing_log.txt")
+    log_file = op.join(output_folder, "processing_log.txt")
     with open(log_file, "w") as f:
-        f.write("Processing Log\n")
-        f.write("=================\n")
-        f.write(f"Total bk2 files: {total_processing_stats['total_bk2_files']}\n")
-        f.write(
-            f"Total clips processed: {total_processing_stats['total_clips_processed']}\n"
-        )
-        f.write(
-            f"Total clips skipped: {total_processing_stats['total_clips_skipped']}\n"
-        )
-        f.write(f"Total errors: {total_processing_stats['total_errors']}\n")
+        f.write("Processing Log\n=================\n")
+        f.write(f"Total bk2 files: {stats['total_bk2_files']}\n")
+        f.write(f"Total clips processed: {stats['total_clips_processed']}\n")
+        f.write(f"Total clips skipped: {stats['total_clips_skipped']}\n")
+        f.write(f"Total errors: {stats['total_errors']}\n")
         f.write("\nError Details:\n")
-        for error in all_error_logs:
+        for error in error_logs:
             f.write(error + "\n")
 
     logging.info(f"Processing complete. Log file saved to {log_file}.")
+
+
+def main(args):
+    """
+    Main entry point for clip extraction pipeline.
+
+    Processes Mario replay files to extract scene clips with videos,
+    savestates, and metadata in BIDS-compliant format.
+    """
+    _setup_logging(args.verbose)
+
+    args.game_name = "SuperMarioBrosSimple-Nes" if args.simple else "SuperMarioBros-Nes"
+    args.output_name = "scene_clips_simple" if args.simple else "scene_clips"
+
+    data_path, output_folder, stimuli_path = _setup_paths(args)
+
+    logging.debug(f"Adding stimuli path: {stimuli_path}")
+    retro.data.Integrations.add_custom_path(stimuli_path)
+    logging.debug(f"Available games: {retro.data.list_games(inttype=retro.data.Integrations.CUSTOM_ONLY)}")
+    logging.info(f"Game: {args.game_name}, Output: {args.output_name}")
+    logging.info(f"Data: {data_path}, Stimuli: {stimuli_path}, Output: {output_folder}")
+
+    scenes_info = load_scenes_info(format="dict")
+    bk2_files = collect_bk2_files(data_path, args.subjects, args.sessions)
+
+    logging.info(f"Processing {len(bk2_files)} bk2 files using {args.n_jobs} job(s)...")
+
+    with tqdm_joblib(tqdm(desc="Processing bk2 files", total=len(bk2_files))):
+        results = Parallel(n_jobs=args.n_jobs)(
+            delayed(process_bk2_file)(info, args, scenes_info, data_path, output_folder, stimuli_path)
+            for info in bk2_files
+        )
+
+    stats, error_logs = _aggregate_results(results, len(bk2_files))
+    _save_dataset_metadata(output_folder, args.output_name, stats, error_logs)
 
 
 if __name__ == "__main__":

@@ -155,6 +155,36 @@ def _load_replay_sidecar(replays_path, sub, ses, bk2_filename):
         return json.load(f)
 
 
+def _check_clip_exists(paths, args):
+    """Check if all requested output files already exist for a clip."""
+    # Always check JSON as it's always created
+    if not os.path.exists(paths["json"]):
+        return False
+
+    # Check video files
+    if args.save_videos:
+        video_path = paths.get(args.video_format)
+        if not os.path.exists(video_path):
+            return False
+
+    # Check savestate file
+    if args.save_states:
+        if not os.path.exists(paths["savestate"]):
+            return False
+
+    # Check ramdump file
+    if args.save_ramdumps:
+        if not os.path.exists(paths["ramdump"]):
+            return False
+
+    # Check variables file
+    if args.save_variables:
+        if not os.path.exists(paths["variables"]):
+            return False
+
+    return True
+
+
 def _save_clip_outputs(paths, frames, states, audio_track, audio_rate,
                       start_idx, end_idx, variables, args):
     """Save requested output files for a clip."""
@@ -228,6 +258,12 @@ def process_bk2_file(bk2_info, args, scenes_info_dict, DATA_PATH, OUTPUT_FOLDER,
                 scene_num = int(scene_name.split('s')[1])
                 paths = _build_clip_paths(OUTPUT_FOLDER, bk2_info["sub"], bk2_info["ses"],
                                         bk2_info["run"], rep_vars['level'], scene_num, clip_code)
+
+                # Check if clip already exists with all requested outputs
+                if _check_clip_exists(paths, args):
+                    logging.debug(f"Skipping existing clip {clip_code}")
+                    processing_stats["clips_skipped"] += 1
+                    continue
 
                 metadata = _build_clip_metadata(
                     bk2_info["sub"], bk2_info["ses"], bk2_info["run"], rep_vars["level"],

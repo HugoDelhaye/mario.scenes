@@ -256,11 +256,11 @@ def cluster_scenes(c, n_clusters=None):
 
 
 @task
-def create_clips(c, datapath="sourcedata/mario", output="outputdata/",
-                 subjects=None, sessions=None, n_jobs=-1, save_videos=True,
-                 save_variables=False, save_states=False, save_ramdumps=False,
-                 video_format="mp4", simple=False, replays_path=None,
-                 stimuli=None, verbose=0):
+def create_clips(c, datapath=None, output=None,
+                 subjects=None, sessions=None, n_jobs=None, save_videos=None,
+                 save_variables=None, save_states=None, save_ramdumps=None,
+                 video_format=None, simple=False, replays_path=None,
+                 stimuli=None, verbose=None):
     """🎬 Extract scene clips from Mario replay files.
 
     Processes .bk2 replay files to identify and extract individual scene clips,
@@ -272,9 +272,9 @@ def create_clips(c, datapath="sourcedata/mario", output="outputdata/",
     c : invoke.Context
         The Invoke context object.
     datapath : str, optional
-        Path to Mario dataset root directory. Default: "sourcedata/mario"
+        Path to Mario dataset root directory. Defaults to mario_dataset from invoke.yaml.
     output : str, optional
-        Path for output derivatives. Default: "outputdata/"
+        Path for output derivatives. Defaults to output_dir from invoke.yaml.
     subjects : str, optional
         Space-separated subject IDs to process (e.g., "sub-01 sub-02").
         If None, processes all subjects.
@@ -282,27 +282,26 @@ def create_clips(c, datapath="sourcedata/mario", output="outputdata/",
         Space-separated session IDs to process (e.g., "ses-001 ses-002").
         If None, processes all sessions.
     n_jobs : int, optional
-        Number of parallel jobs. Default: -1 (use all cores)
+        Number of parallel jobs. Defaults to n_jobs from invoke.yaml.
     save_videos : bool, optional
-        Whether to save video files. Default: True
+        Whether to save video files. Defaults to save_videos from invoke.yaml.
     save_variables : bool, optional
-        Whether to save game variables as JSON. Default: False
+        Whether to save game variables as JSON. Defaults to save_variables from invoke.yaml.
     save_states : bool, optional
-        Whether to save savestates (gzipped RAM at clip start). Default: False
+        Whether to save savestates (gzipped RAM at clip start). Defaults to save_states from invoke.yaml.
     save_ramdumps : bool, optional
-        Whether to save full RAM dumps per frame. Default: False
+        Whether to save full RAM dumps per frame. Defaults to save_ramdumps from invoke.yaml.
     video_format : str, optional
-        Video format to save: "mp4", "gif", or "webp". Default: "mp4"
+        Video format to save: "mp4", "gif", or "webp". Defaults to video_format from invoke.yaml.
     simple : bool, optional
         Use simplified game version. Default: False
     replays_path : str, optional
         Path to mario.replays output to enrich metadata with replay-level info.
-        If not provided, clips will have scene-level metadata only.
+        Defaults to replays_path from invoke.yaml (optional).
     stimuli : str, optional
-        Path to stimuli folder containing game ROMs. If not specified,
-        defaults to <datapath>/stimuli.
+        Path to stimuli folder containing game ROMs. Defaults to stimuli_path from invoke.yaml.
     verbose : int, optional
-        Verbosity level (0=WARNING, 1=INFO, 2+=DEBUG). Default: 0
+        Verbosity level (0=WARNING, 1=INFO, 2+=DEBUG). Defaults to verbose from invoke.yaml.
 
     Examples
     --------
@@ -323,6 +322,41 @@ def create_clips(c, datapath="sourcedata/mario", output="outputdata/",
     Then pass the output path via --replays-path to include replay-level
     statistics (score gained, enemies killed, etc.) in clip metadata.
     """
+    # Resolve paths from configuration or arguments
+    if datapath is None:
+        datapath = c.config.get("mario_dataset", "sourcedata/mario")
+
+    if output is None:
+        output = c.config.get("output_dir", "outputdata/clips")
+
+    if stimuli is None:
+        stimuli = c.config.get("stimuli_path", None)
+
+    if replays_path is None:
+        replays_path = c.config.get("replays_path", None)
+
+    if n_jobs is None:
+        n_jobs = c.config.get("n_jobs", -1)
+
+    # Resolve boolean/string flags from config if not explicitly set via CLI
+    if save_videos is None:
+        save_videos = c.config.get("save_videos", True)
+
+    if save_variables is None:
+        save_variables = c.config.get("save_variables", False)
+
+    if save_states is None:
+        save_states = c.config.get("save_states", False)
+
+    if save_ramdumps is None:
+        save_ramdumps = c.config.get("save_ramdumps", False)
+
+    if video_format is None:
+        video_format = c.config.get("video_format", "mp4")
+
+    if verbose is None:
+        verbose = c.config.get("verbose", 0)
+
     cmd = f"python {BASE_DIR}/code/mario_scenes/create_clips/create_clips.py -d {datapath} -o {output} -nj {n_jobs}"
     if save_videos:
         cmd += " --save_videos"

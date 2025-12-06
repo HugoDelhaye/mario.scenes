@@ -53,11 +53,24 @@ Extract video clips for each scene traversal from replay files:
 invoke create-clips --datapath sourcedata/mario --output outputdata/ \
   --save-videos --video-format mp4
 
-# Process specific subjects/sessions with parallel jobs
-invoke create-clips --subjects sub-01 sub-02 --sessions ses-001 --n-jobs 8
-
 # Save additional outputs (savestates, variables, ramdumps)
 invoke create-clips --save-states --save-variables --save-ramdumps
+```
+
+**Process specific subjects/sessions:**
+
+```bash
+# Process only sub-01 and sub-02
+invoke create-clips --subjects "sub-01 sub-02"
+
+# Process only session 001
+invoke create-clips --sessions "ses-001"
+
+# Combine filters with parallel jobs
+invoke create-clips \
+  --subjects "sub-01 sub-02" \
+  --sessions "ses-001 ses-002" \
+  --n-jobs 8
 ```
 
 **Enhanced metadata with mario.replays**: For richer metadata including replay-level statistics (score gained, enemies killed, coins collected, etc.), first process replays with [mario.replays](https://github.com/courtois-neuromod/mario.replays):
@@ -160,10 +173,10 @@ backgrounds = load_background_images(level='scene')  # {scene_id: PIL.Image}
 
 ```python
 from mario_scenes.create_clips.create_clips import cut_scene_clips, get_rep_order
-from videogames.utils.replay import get_variables_from_replay
+from cneuromod_vg_utils.replay import get_variables_from_replay
 
 # Replay a BK2 file
-variables, info, frames, states = get_variables_from_replay('path/to/file.bk2')
+variables, info, frames, states, audio, audio_rate = get_variables_from_replay('path/to/file.bk2')
 
 # Find scene traversals
 scene_bounds = {'start': 0, 'end': 256, 'level_layout': 0}
@@ -171,6 +184,22 @@ rep_order = get_rep_order(ses=1, run=1, bk2_idx=0)
 clips = cut_scene_clips(variables, rep_order, scene_bounds)
 
 # clips = {'0010100000000': (start_frame, end_frame), ...}
+```
+
+### Process Specific Subjects/Sessions
+
+Command-line filtering:
+
+```bash
+# Python script
+python code/mario_scenes/create_clips/create_clips.py \
+  --datapath sourcedata/mario \
+  --subjects sub-01 sub-02 \
+  --sessions ses-001 ses-002 \
+  --save-videos
+
+# Invoke task
+invoke create-clips --subjects "sub-01" --sessions "ses-001"
 ```
 
 ### Cluster Analysis

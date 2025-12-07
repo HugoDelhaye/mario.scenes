@@ -7,7 +7,7 @@ stimuli_path: null                   # Path to stimuli (defaults to {mario_datas
 output_dir: ./         # Output directory for derivatives
 
 # Optional input paths
-replays_path: null        # Path to mario.replays output (optional, for enriched metadata)
+replays_path: ../mario.replays        # Path to mario.replays output (optional, for enriched metadata)
 scenes_info_dir: sourcedata/scenes_info
 
 # Game configuration

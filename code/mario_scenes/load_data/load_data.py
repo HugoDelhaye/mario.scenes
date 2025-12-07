@@ -18,7 +18,7 @@ def load_scenes_info(format='df'):
         format: 'df' for DataFrame or 'dict' for {scene_id: {start, end, level_layout}}
     """
     # Check if file exists
-    assert op.exists(SCENES_MASTERSHEET), f"File not found: {SCENES_MASTERSHEET}, make sure you run 'invoke collect-resources' first."
+    assert op.exists(SCENES_MASTERSHEET), f"File not found: {SCENES_MASTERSHEET}, make sure you run 'invoke get-scenes-data' first."
     
     # Load the data
     scenes_df = pd.read_csv(SCENES_MASTERSHEET)

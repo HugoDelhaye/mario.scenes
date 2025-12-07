@@ -36,6 +36,7 @@ BASE_DIR = op.dirname(op.abspath(__file__))
 # 📦 Setup & Configuration
 # ===============================
 
+
 @task
 def setup_env(c):
     """🔧 Set up Python virtual environment and install dependencies.
@@ -59,10 +60,11 @@ def setup_env(c):
     This task creates a new virtual environment from scratch. If you need to update
     dependencies in an existing environment, activate it manually and run pip install.
     """
-    c.run(f"python -m venv {BASE_DIR}/env && "
-          f"source {BASE_DIR}/env/bin/activate && "
-          "pip install -r requirements.txt && "
-          "pip install -e .")
+    c.run(
+        f"python -m venv {BASE_DIR}/env && "
+        f"source {BASE_DIR}/env/bin/activate && "
+        "pip install -e ."
+    )
 
 
 @task
@@ -89,15 +91,17 @@ def setup_env_on_hpc(c):
     This task assumes you're running on an HPC cluster with access to the
     module system and git repositories.
     """
-    c.run("module load python/3.10 && "
-          f"python -m venv {BASE_DIR}/env && "
-          "cd mario_scenes_env/lib/python3.10/site-packages && "
-          "git clone git@github.com:farama-foundation/stable-retro && "
-          "cd ../../../.. && "
-          "source ./mario_scenes_env/bin/activate && "
-          "pip install -e mario_scenes_env/lib/python3.10/site-packages/stable-retro/. && "
-          "pip install -r requirements_hpc.txt && "
-          "pip install -e .")
+    c.run(
+        "module load python/3.10 && "
+        f"python -m venv {BASE_DIR}/env && "
+        "cd mario_scenes_env/lib/python3.10/site-packages && "
+        "git clone git@github.com:farama-foundation/stable-retro && "
+        "cd ../../../.. && "
+        "source ./mario_scenes_env/bin/activate && "
+        "pip install -e mario_scenes_env/lib/python3.10/site-packages/stable-retro/. && "
+        "pip install -r requirements_hpc.txt && "
+        "pip install -e ."
+    )
 
 
 @task
@@ -176,11 +180,21 @@ def get_scenes_data(c):
     Downloads from Zenodo record 15586709.
     """
     c.run("mkdir -p sourcedata/scenes_info")
-    c.run('wget "https://zenodo.org/records/15586709/files/mario_scenes_manual_annotation.pdf?download=1" -O sourcedata/scenes_info/mario_scenes_manual_annotation.pdf')
-    c.run('wget "https://zenodo.org/records/15586709/files/scenes_mastersheet.json?download=1" -O sourcedata/scenes_info/scenes_mastersheet.json')
-    c.run('wget "https://zenodo.org/records/15586709/files/scenes_mastersheet.csv?download=1" -O sourcedata/scenes_info/scenes_mastersheet.csv')
-    c.run('wget "https://zenodo.org/records/15586709/files/scene_backgrounds.tar.gz?download=1" -O sourcedata/scene_backgrounds.tar.gz')
-    c.run('wget "https://zenodo.org/records/15586709/files/level_backgrounds.tar.gz?download=1" -O sourcedata/level_backgrounds.tar.gz')
+    c.run(
+        'wget "https://zenodo.org/records/15586709/files/mario_scenes_manual_annotation.pdf?download=1" -O sourcedata/scenes_info/mario_scenes_manual_annotation.pdf'
+    )
+    c.run(
+        'wget "https://zenodo.org/records/15586709/files/scenes_mastersheet.json?download=1" -O sourcedata/scenes_info/scenes_mastersheet.json'
+    )
+    c.run(
+        'wget "https://zenodo.org/records/15586709/files/scenes_mastersheet.csv?download=1" -O sourcedata/scenes_info/scenes_mastersheet.csv'
+    )
+    c.run(
+        'wget "https://zenodo.org/records/15586709/files/scene_backgrounds.tar.gz?download=1" -O sourcedata/scene_backgrounds.tar.gz'
+    )
+    c.run(
+        'wget "https://zenodo.org/records/15586709/files/level_backgrounds.tar.gz?download=1" -O sourcedata/level_backgrounds.tar.gz'
+    )
     c.run("tar -xvf sourcedata/scene_backgrounds.tar.gz -C sourcedata/")
     c.run("tar -xvf sourcedata/level_backgrounds.tar.gz -C sourcedata/")
     c.run("rm sourcedata/scene_backgrounds.tar.gz")
@@ -190,6 +204,7 @@ def get_scenes_data(c):
 # ===============================
 # 🔬 Analysis & Processing
 # ===============================
+
 
 @task
 def dimensionality_reduction(c):
@@ -218,7 +233,9 @@ def dimensionality_reduction(c):
     Requires scene annotations to be available (run get-scenes-data first).
     Output files: pca.csv, umap.csv, tsne.csv
     """
-    c.run(f"python {BASE_DIR}/code/mario_scenes/scenes_analysis/dimensionality_reduction.py")
+    c.run(
+        f"python {BASE_DIR}/code/mario_scenes/scenes_analysis/dimensionality_reduction.py"
+    )
 
 
 @task
@@ -252,15 +269,28 @@ def cluster_scenes(c, n_clusters=None):
         cluster_arg = " ".join(str(i) for i in range(5, 31))
     else:
         cluster_arg = n_clusters
-    c.run(f"python {BASE_DIR}/code/mario_scenes/scenes_analysis/cluster_scenes.py --n_clusters {cluster_arg}")
+    c.run(
+        f"python {BASE_DIR}/code/mario_scenes/scenes_analysis/cluster_scenes.py --n_clusters {cluster_arg}"
+    )
 
 
 @task
-def create_clips(c, datapath=None, output=None,
-                 subjects=None, sessions=None, n_jobs=None, save_videos=None,
-                 save_variables=None, save_states=None, save_ramdumps=None,
-                 video_format=None, replays_path=None,
-                 stimuli=None, verbose=None):
+def create_clips(
+    c,
+    datapath=None,
+    output=None,
+    subjects=None,
+    sessions=None,
+    n_jobs=None,
+    save_videos=None,
+    save_variables=None,
+    save_states=None,
+    save_ramdumps=None,
+    video_format=None,
+    replays_path=None,
+    stimuli=None,
+    verbose=None,
+):
     """🎬 Extract scene clips from Mario replay files.
 
     Processes .bk2 replay files to identify and extract individual scene clips,
@@ -421,6 +451,7 @@ def make_scene_images(c, data_path=None, subjects="all", level=None):
 # ===============================
 # 🔄 Workflows
 # ===============================
+
 
 @task
 def full_pipeline(c):

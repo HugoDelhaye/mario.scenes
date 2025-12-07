@@ -329,7 +329,7 @@ def _setup_paths(args):
 
     stimuli_path = (op.abspath(args.stimuli)
                    if args.stimuli
-                   else op.abspath(op.join(data_path, "mario.stimuli")))
+                   else op.abspath(op.join(data_path, "stimuli")))
 
     return data_path, output_folder, stimuli_path
 
@@ -394,7 +394,7 @@ def main(args):
     _setup_logging(args.verbose)
 
     args.game_name = "SuperMarioBrosSimple-Nes" if args.simple else "SuperMarioBros-Nes"
-    args.output_name = "scene_clips_simple" if args.simple else "scene_clips"
+    args.output_name = "scene_clips_simple" if args.simple else "."
 
     data_path, output_folder, stimuli_path = _setup_paths(args)
 

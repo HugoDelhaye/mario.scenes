@@ -88,7 +88,7 @@ invoke create-clips --replays-path ../mario.replays/outputdata/replays
 **Output**: BIDS-structured directories with videos, savestates, and JSON metadata:
 
 ```
-outputdata/scene_clips/
+outputdata/
 └── sub-01/ses-001/beh/
     ├── videos/sub-01_ses-001_run-01_level-w1l1_scene-1_clip-*.mp4
     ├── savestates/sub-01_ses-001_run-01_level-w1l1_scene-1_clip-*.state
@@ -253,7 +253,7 @@ sourcedata/mario/
 BIDS-compliant format with unique clip identifiers:
 
 ```
-{output}/scene_clips/sub-{subject}/ses-{session}/beh/
+{output}/sub-{subject}/ses-{session}/beh/
 ├── videos/       # .mp4/.gif/.webp clips
 ├── savestates/   # .state files (gzipped RAM)
 ├── ramdumps/     # .npz files (per-frame RAM)

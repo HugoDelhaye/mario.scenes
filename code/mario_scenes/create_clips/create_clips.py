@@ -393,8 +393,8 @@ def main(args):
     """
     _setup_logging(args.verbose)
 
-    args.game_name = "SuperMarioBrosSimple-Nes" if args.simple else "SuperMarioBros-Nes"
-    args.output_name = "scene_clips_simple" if args.simple else "."
+    args.game_name = "SuperMarioBros-Nes"
+    args.output_name = "."
 
     data_path, output_folder, stimuli_path = _setup_paths(args)
 
@@ -482,12 +482,6 @@ if __name__ == "__main__":
         "--save_ramdumps",
         action="store_true",
         help="Save RAM dumps at each frame into a *_ramdumps.npy file.",
-    )
-    parser.add_argument(
-        "--simple",
-        action="store_true",
-        help="If set, use the simplified game version (SuperMarioBrosSimple-Nes) "
-        "and output into 'mario_scenes_simple' subfolder instead of 'mario_scenes'.",
     )
     parser.add_argument(
         "-v",

@@ -97,7 +97,6 @@ def main(args):
         - data_path: Path to Mario dataset (default: sourcedata/mario)
         - subjects: Subject ID or 'all' (default: 'all')
         - level: Specific level to process (e.g., 'w1l1'), or None for all
-        - simple: Use SuperMarioBrosSimple-Nes if True
 
     Output
     ------
@@ -138,11 +137,8 @@ def main(args):
         subjects = None
     else:
         subjects = args.subjects
-    if args.simple:
-        game = 'SuperMarioBrosSimple-Nes'
-    else:
-        game = 'SuperMarioBros-Nes'
-    
+    game = 'SuperMarioBros-Nes'
+
     retro.data.Integrations.add_custom_path(op.join(DATA_PATH, 'stimuli'))
     scenes_info_dict = load_scenes_info(format='dict')
     bk2_list = collect_bk2_files(DATA_PATH, subjects=subjects)
@@ -297,7 +293,6 @@ if __name__ == "__main__":
     parser.add_argument('-d', '--data_path', type=str, default=None, help='Path to the data directory')
     parser.add_argument('-s', '--subjects', type=str, default='sub-03', help='Subject to process')
     parser.add_argument('-l', '--level', type=str, default=None, help='Specify level to process (e.g. "w1l1"). If unspecified, all levels will be processed.')
-    parser.add_argument('--simple', action='store_true', help='Use simple mode (no background image)')
 
     args = parser.parse_args()
 

@@ -259,7 +259,7 @@ def cluster_scenes(c, n_clusters=None):
 def create_clips(c, datapath=None, output=None,
                  subjects=None, sessions=None, n_jobs=None, save_videos=None,
                  save_variables=None, save_states=None, save_ramdumps=None,
-                 video_format=None, simple=False, replays_path=None,
+                 video_format=None, replays_path=None,
                  stimuli=None, verbose=None):
     """🎬 Extract scene clips from Mario replay files.
 
@@ -293,8 +293,6 @@ def create_clips(c, datapath=None, output=None,
         Whether to save full RAM dumps per frame. Defaults to save_ramdumps from invoke.yaml.
     video_format : str, optional
         Video format to save: "mp4", "gif", or "webp". Defaults to video_format from invoke.yaml.
-    simple : bool, optional
-        Use simplified game version. Default: False
     replays_path : str, optional
         Path to mario.replays output to enrich metadata with replay-level info.
         Defaults to replays_path from invoke.yaml (optional).
@@ -309,7 +307,7 @@ def create_clips(c, datapath=None, output=None,
     invoke create-clips
     invoke create-clips --subjects "sub-01 sub-02" --video-format gif
     invoke create-clips --save-states --save-variables --replays-path outputdata/replays
-    invoke create-clips --n-jobs 4 --simple
+    invoke create-clips --n-jobs 4
     ```
 
     Notes
@@ -371,8 +369,6 @@ def create_clips(c, datapath=None, output=None,
         cmd += f" --subjects {subjects}"
     if sessions:
         cmd += f" --sessions {sessions}"
-    if simple:
-        cmd += " --simple"
     if replays_path:
         cmd += f" --replays_path {replays_path}"
     if stimuli:
@@ -383,7 +379,7 @@ def create_clips(c, datapath=None, output=None,
 
 
 @task
-def make_scene_images(c, data_path=None, subjects="all", level=None, simple=False):
+def make_scene_images(c, data_path=None, subjects="all", level=None):
     """🖼️ Generate background images for levels and scenes.
 
     Processes replay files to create canonical background images by averaging
@@ -400,15 +396,12 @@ def make_scene_images(c, data_path=None, subjects="all", level=None, simple=Fals
         Subjects to include in averaging. Default: "all"
     level : str, optional
         Specific level to process (e.g., "w1l1"). If None, processes all levels.
-    simple : bool, optional
-        Use simplified game version. Default: False
 
     Examples
     --------
     ```bash
     invoke make-scene-images
     invoke make-scene-images --level w1l1 --subjects sub-03
-    invoke make-scene-images --simple
     ```
 
     Notes
@@ -422,8 +415,6 @@ def make_scene_images(c, data_path=None, subjects="all", level=None, simple=Fals
         cmd += f" -s {subjects}"
     if level:
         cmd += f" -l {level}"
-    if simple:
-        cmd += " --simple"
     c.run(cmd)
 
 

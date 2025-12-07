@@ -12,7 +12,6 @@ scenes_info_dir: sourcedata/scenes_info
 
 # Game configuration
 game_name: SuperMarioBros-Nes
-game_name_simple: SuperMarioBrosSimple-Nes
 
 # Processing options (defaults for create-clips task)
 n_jobs: -1             # Number of parallel jobs (-1 = all CPU cores)
